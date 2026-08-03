@@ -1444,17 +1444,18 @@ let notesList    = [];
 let editingId    = null;
 let nextId       = 1;
 
-const DEFAULT_EVENTS = [{"id": 1, "name": "M365 - Marcel Evergreen", "start": "2026-06-30", "end": "2026-07-09", "color": "blue2", "producer": "Mike", "editor": "Diogo, Troy", "status": "qc", "deliveryDate": "", "liveDate": "", "notes": "6/30 - Handoff from Panay EOD\n7/1 - Begin Edit\n7/2 - R1 to creative (midday) + client (EOD)\n7/3-7/5: July 4th Holiday \n7/6 - R2 to client EOD\n7/7 - Create Transcodes + FYI to Client\n7/8  - QC transcodes \n7/9 - Final QC/QA + Handoff to Publics", "weekdaysOnly": true, "skipHolidays": true, "wbsState": {"0": {"highlight": false, "done": true}, "1": {"highlight": false, "done": true}, "2": {"highlight": false, "done": true}, "3": {"done": true, "highlight": false}, "4": {"done": true, "highlight": false}, "5": {"done": true, "highlight": false}, "6": {"highlight": true, "done": false}, "7": {"done": false, "highlight": false}}, "internalNotes": "", "internalNotesList": ["Direction is to hold files in Lucid and not handoff on 7/9. Hand off day TBD", "Mission Control will be locked by 7/9"], "jobNumber": "M1261428"}, {"id": 2, "name": "Jake OOO", "start": "2026-07-01", "end": "2026-07-02", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 3, "name": "Christian OOO", "start": "2026-07-13", "end": "2026-07-17", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 4, "name": "Dana OOO", "start": "2026-07-15", "end": "2026-07-21", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 5, "name": "Hannah OOO", "start": "2026-07-15", "end": "2026-07-15", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 6, "name": "Mike OOO", "start": "2026-07-16", "end": "2026-07-21", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 7, "name": "Intel Neo - Exports + QC/QA", "start": "2026-08-12", "end": "2026-08-17", "color": "purple", "producer": "", "editor": "", "status": "", "deliveryDate": "2026-08-17", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true, "internalNotesList": []}, {"id": 8, "name": "M365 Marcel Evergreen UK", "start": "2026-07-13", "end": "2026-07-15", "color": "blue2", "jobNumber": "M1267973", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "Add taxonomy + QC/QA", "weekdaysOnly": false, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}];
-const DEFAULT_NEXT_ID = 9;
-const DATA_VERSION = 'prodcal-v22'; // bump this with every new bake
+const DEFAULT_EVENTS = [{"id": 2, "name": "Jake OOO", "start": "2026-07-01", "end": "2026-07-02", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 3, "name": "Christian OOO", "start": "2026-07-13", "end": "2026-07-17", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 4, "name": "Dana OOO", "start": "2026-07-15", "end": "2026-07-21", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 6, "name": "Mike OOO", "start": "2026-07-16", "end": "2026-07-22", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": [], "jobNumber": ""}, {"id": 7, "name": "Intel Neo - Exports + QC/QA", "start": "2026-08-12", "end": "2026-08-17", "color": "purple", "producer": "", "editor": "", "status": "", "deliveryDate": "2026-08-17", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true, "internalNotesList": []}, {"id": 10, "name": "Windows - CCS Retail Creator", "start": "2026-07-09", "end": "2026-07-14", "color": "green", "jobNumber": "M1268861", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "Tag to rename with taxonomy + QC/QA + Deliver to Publicis via Sharepoint", "weekdaysOnly": true, "skipHolidays": true, "wbsState": {}, "internalNotesList": ["Renamed and with the QC team. 2 call outs flagged to accounts"]}, {"id": 14, "name": "Hackett OOO", "start": "2026-07-22", "end": "2026-07-27", "color": "charcoal", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true}, {"id": 18, "name": "M365 Marcel Evergreen US", "start": "2026-06-30", "end": "2026-07-29", "color": "blue2", "jobNumber": "M1261428", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 19, "name": "M365 - Copilot Convergence Campaign", "start": "2026-09-14", "end": "2026-09-20", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "WBS - TBD\n\nROW - 5 non US Markets (2 weeks after US)\n                    IW & SMB Performance layers", "weekdaysOnly": false, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 20, "name": "M365 Marcel Evergreen UK", "start": "2026-06-30", "end": "2026-07-29", "color": "blue2", "jobNumber": "M1267973", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 21, "name": "Windows - Holiday [Anthem :30 | Product :15] 1 social video", "start": "2026-09-26", "end": "2026-10-06", "color": "green", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "2026-10-12", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 23, "name": "M365 CTA Update for Low Funnel SMB | US + UK", "start": "2026-07-27", "end": "2026-07-31", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 24, "name": "M365 - Copilot Convergence Campaign - UK + ROW (LF Only)", "start": "2026-09-21", "end": "2026-09-30", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true}];
+const DEFAULT_NEXT_ID = 30;
+const DATA_VERSION = 'prodcal-v23'; // bump this with every new bake
 const STORAGE_KEY     = 'prodcal2_events_v1';
 const STORAGE_ID_KEY  = 'prodcal2_nextid_v1';
 const VERSION_KEY     = 'prodcal2_data_version';
 
-// ── JSONBin sync ──────────────────────────────────────────────
-const JBIN_ID  = '6a502242f5f4af5e2979dfa8';
-const JBIN_KEY = '$2a$10$/NP/Fwv.BGahdhpkQpQVf.XxHICYbIgR4andjskMj8s4EfcvUha.q';
-const JBIN_URL = `https://api.jsonbin.io/v3/b/${JBIN_ID}`;
+// ── GitHub Gist sync ──────────────────────────────────────────
+const GIST_TOKEN = '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';
+const GIST_ID    = 'fc12ea344f60b1568dd590caead0a2e7';
+const GIST_FILE  = 'calendar-data.json';
+const GIST_API   = `https://api.github.com/gists/${GIST_ID}`;
 let lastUpdated = null;
 
 function showSaveIndicator(msg, color) {
@@ -1474,16 +1475,20 @@ async function saveData() {
     localStorage.setItem(VERSION_KEY, DATA_VERSION);
   } catch(e) {}
 
-  // Push to JSONBin
+  // Push to GitHub
   try {
     showSaveIndicator('saving...', '#888');
-    const res = await fetch(JBIN_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JBIN_KEY },
-      body: JSON.stringify({ events, nextId, updated: Date.now() })
+    const payload = { events, nextId, updated: Date.now() };
+    const res = await fetch(GIST_API, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `token ${GIST_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(payload) } } })
     });
     if (res.ok) {
-      lastUpdated = Date.now();
+      lastUpdated = payload.updated;
       showSaveIndicator('✓ saved & synced', '#4a9');
     } else {
       showSaveIndicator('✓ saved (local)', '#888');
@@ -1494,21 +1499,21 @@ async function saveData() {
 }
 
 async function loadData() {
-  // Try JSONBin first
+  // Try GitHub first
   try {
-    const res = await fetch(JBIN_URL + '/latest', {
-      headers: { 'X-Master-Key': JBIN_KEY }
+    const res = await fetch(GIST_API + '?t=' + Date.now(), {
+      headers: { 'Authorization': `token ${GIST_TOKEN}` }
     });
     if (res.ok) {
       const json = await res.json();
-      const d = json.record;
+      const raw = json.files[GIST_FILE].content;
+      const d = JSON.parse(raw);
       if (d && d.events && d.events.length > 0) {
         events = d.events;
         nextId = d.nextId || DEFAULT_NEXT_ID;
         lastUpdated = d.updated || Date.now();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
         localStorage.setItem(STORAGE_ID_KEY, String(nextId));
-        localStorage.setItem(VERSION_KEY, DATA_VERSION);
         return;
       }
     }
