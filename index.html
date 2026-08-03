@@ -1451,11 +1451,10 @@ const STORAGE_KEY     = 'prodcal2_events_v1';
 const STORAGE_ID_KEY  = 'prodcal2_nextid_v1';
 const VERSION_KEY     = 'prodcal2_data_version';
 
-// ── GitHub Gist sync ──────────────────────────────────────────
-const GIST_TOKEN = ['ghp_OufD','4cklBLhdsOMN','ogon7eM8Yju5T52qtSr2'].join('');
-const GIST_ID    = 'fc12ea344f60b1568dd590caead0a2e7';
-const GIST_FILE  = 'calendar-data.json';
-const GIST_API   = `https://api.github.com/gists/${GIST_ID}`;
+// ── JSONBin sync ──────────────────────────────────────────────
+const JBIN_ID  = '6a70f254da38895dfeb53579';
+const JBIN_KEY = atob('JDJhJDEwJEppem50N0JBNjN5UDZLcG1tNmttVWU1VWhpcGtwQy9xRktPb1d2MkVyYmJ6eElhMk95VGRT');
+const JBIN_URL = `https://api.jsonbin.io/v3/b/${JBIN_ID}`;
 let lastUpdated = null;
 
 function showSaveIndicator(msg, color) {
@@ -1479,13 +1478,13 @@ async function saveData() {
   try {
     showSaveIndicator('saving...', '#888');
     const payload = { events, nextId, updated: Date.now() };
-    const res = await fetch(GIST_API, {
-      method: 'PATCH',
+    const res = await fetch(JBIN_URL, {
+      method: 'PUT',
       headers: {
-        'Authorization': `token ${GIST_TOKEN}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Master-Key': JBIN_KEY
       },
-      body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(payload) } } })
+      body: JSON.stringify(payload)
     });
     if (res.ok) {
       lastUpdated = payload.updated;
@@ -1501,13 +1500,12 @@ async function saveData() {
 async function loadData() {
   // Try GitHub first
   try {
-    const res = await fetch(GIST_API + '?t=' + Date.now(), {
-      headers: { 'Authorization': `token ${GIST_TOKEN}` }
+    const res = await fetch(JBIN_URL + '/latest', {
+      headers: { 'X-Master-Key': JBIN_KEY }
     });
     if (res.ok) {
       const json = await res.json();
-      const raw = json.files[GIST_FILE].content;
-      const d = JSON.parse(raw);
+      const d = json.record;
       if (d && d.events && d.events.length > 0) {
         events = d.events;
         nextId = d.nextId || DEFAULT_NEXT_ID;
