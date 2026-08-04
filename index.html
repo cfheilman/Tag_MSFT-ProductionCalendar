@@ -1444,9 +1444,9 @@ let notesList    = [];
 let editingId    = null;
 let nextId       = 1;
 
-const DEFAULT_EVENTS = [{"id": 2, "name": "Jake OOO", "start": "2026-07-01", "end": "2026-07-02", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 3, "name": "Christian OOO", "start": "2026-07-13", "end": "2026-07-17", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 4, "name": "Dana OOO", "start": "2026-07-15", "end": "2026-07-21", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 6, "name": "Mike OOO", "start": "2026-07-16", "end": "2026-07-22", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": [], "jobNumber": ""}, {"id": 7, "name": "Intel Neo - Exports + QC/QA", "start": "2026-08-12", "end": "2026-08-17", "color": "purple", "producer": "", "editor": "", "status": "", "deliveryDate": "2026-08-17", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true, "internalNotesList": []}, {"id": 10, "name": "Windows - CCS Retail Creator", "start": "2026-07-09", "end": "2026-07-14", "color": "green", "jobNumber": "M1268861", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "Tag to rename with taxonomy + QC/QA + Deliver to Publicis via Sharepoint", "weekdaysOnly": true, "skipHolidays": true, "wbsState": {}, "internalNotesList": ["Renamed and with the QC team. 2 call outs flagged to accounts"]}, {"id": 14, "name": "Hackett OOO", "start": "2026-07-22", "end": "2026-07-27", "color": "charcoal", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true}, {"id": 18, "name": "M365 Marcel Evergreen US", "start": "2026-06-30", "end": "2026-07-29", "color": "blue2", "jobNumber": "M1261428", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 19, "name": "M365 - Copilot Convergence Campaign", "start": "2026-09-14", "end": "2026-09-20", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "WBS - TBD\n\nROW - 5 non US Markets (2 weeks after US)\n                    IW & SMB Performance layers", "weekdaysOnly": false, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 20, "name": "M365 Marcel Evergreen UK", "start": "2026-06-30", "end": "2026-07-29", "color": "blue2", "jobNumber": "M1267973", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 21, "name": "Windows - Holiday [Anthem :30 | Product :15] 1 social video", "start": "2026-09-26", "end": "2026-10-06", "color": "green", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "2026-10-12", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 23, "name": "M365 CTA Update for Low Funnel SMB | US + UK", "start": "2026-07-27", "end": "2026-07-31", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 24, "name": "M365 - Copilot Convergence Campaign - UK + ROW (LF Only)", "start": "2026-09-21", "end": "2026-09-30", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true}];
-const DEFAULT_NEXT_ID = 30;
-const DATA_VERSION = 'prodcal-v23'; // bump this with every new bake
+const DEFAULT_EVENTS = [{"id": 2, "name": "Jake OOO", "start": "2026-07-01", "end": "2026-07-02", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 3, "name": "Christian OOO", "start": "2026-07-13", "end": "2026-07-17", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 4, "name": "Dana OOO", "start": "2026-07-15", "end": "2026-07-21", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 6, "name": "Mike OOO", "start": "2026-07-16", "end": "2026-07-22", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": [], "jobNumber": ""}, {"id": 7, "name": "Intel Neo - Exports + QC/QA", "start": "2026-08-12", "end": "2026-08-17", "color": "purple", "producer": "", "editor": "", "status": "", "deliveryDate": "2026-08-17", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true, "internalNotesList": []}, {"id": 10, "name": "Windows - CCS Retail Creator", "start": "2026-07-09", "end": "2026-07-14", "color": "green", "jobNumber": "M1268861", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "Tag to rename with taxonomy + QC/QA + Deliver to Publicis via Sharepoint", "weekdaysOnly": true, "skipHolidays": true, "wbsState": {}, "internalNotesList": ["Renamed and with the QC team. 2 call outs flagged to accounts"]}, {"id": 14, "name": "Hackett OOO", "start": "2026-07-22", "end": "2026-07-27", "color": "charcoal", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true}, {"id": 18, "name": "M365 Marcel Evergreen US", "start": "2026-06-30", "end": "2026-07-29", "color": "blue2", "jobNumber": "M1261428", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 19, "name": "M365 - Copilot Convergence Campaign [1x Anthem | 1x Product (??]", "start": "2026-09-17", "end": "2026-09-20", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "WBS - TBD\n\nROW - 5 non US Markets (2 weeks after US)\n                    IW & SMB Performance layers", "weekdaysOnly": false, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 20, "name": "M365 Marcel Evergreen UK", "start": "2026-06-30", "end": "2026-07-29", "color": "blue2", "jobNumber": "M1267973", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 21, "name": "Windows - Holiday [1x Anthem :30 | 1x Product :15 | 1x Social video (??)]", "start": "2026-09-26", "end": "2026-10-02", "color": "green", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "2026-10-12", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 23, "name": "M365 CTA Update for Low Funnel SMB | US + UK", "start": "2026-07-27", "end": "2026-07-31", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 24, "name": "M365 - Copilot Convergence Campaign - UK + ROW (LF Only)", "start": "2026-09-21", "end": "2026-09-30", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true}, {"id": 37, "name": "Tag Closed // Summer Friday", "start": "2026-08-14", "end": "2026-08-14", "color": "charcoal", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false}];
+const DEFAULT_NEXT_ID = 38;
+const DATA_VERSION = 'prodcal-v24'; // bump this with every new bake
 const STORAGE_KEY     = 'prodcal2_events_v1';
 const STORAGE_ID_KEY  = 'prodcal2_nextid_v1';
 const VERSION_KEY     = 'prodcal2_data_version';
@@ -1981,7 +1981,22 @@ function render() {
         const widthPct = (endCol - startCol + 1) * colW;
 
         const bar = document.createElement('div');
-        bar.className = `event-bar ${ev.color}`;
+        bar.className = `event-bar ${ev.color}${ev.status === 'delivered' ? ' delivered-bar' : ''}`;
+        if (ev.status === 'delivered') {
+          const job = getJobByKey(ev.color);
+          const hex = job.hex.startsWith('rgba') ? '#1565C0' : job.hex;
+          if (hex.startsWith('#') && hex.length === 7) {
+            const r = parseInt(hex.slice(1,3),16);
+            const g = parseInt(hex.slice(3,5),16);
+            const b = parseInt(hex.slice(5,7),16);
+            // Mix color with grey — 40% color, 60% grey
+            const mr = Math.round(r * 0.4 + 160 * 0.6);
+            const mg = Math.round(g * 0.4 + 160 * 0.6);
+            const mb = Math.round(b * 0.4 + 160 * 0.6);
+            bar.style.background = `rgb(${mr},${mg},${mb})`;
+            bar.style.opacity = '0.75';
+          }
+        }
         // For custom jobs, apply hex directly since no CSS class exists
         if (ev.color.startsWith('custom_')) {
           const job = getJobByKey(ev.color);
@@ -2025,10 +2040,10 @@ function render() {
 
         barsLayer.appendChild(bar);
 
-        // Render delivery date cap (orange) and live date cap (red) if they fall in this week
+        // Render delivery cap (orange) and live date cap (red) with labels
         const caps = [];
-        if (ev.deliveryDate) caps.push({ date: ev.deliveryDate, color: '#E65100', label: 'D' });
-        if (ev.liveDate)     caps.push({ date: ev.liveDate,     color: '#C62828', label: 'L' });
+        if (ev.deliveryDate) caps.push({ date: ev.deliveryDate, color: '#E65100', label: 'Delivery' });
+        if (ev.liveDate)     caps.push({ date: ev.liveDate,     color: '#B71C1C', label: 'Live Date' });
 
         caps.forEach(cap => {
           if (cap.date < weekStart || cap.date > weekEnd) return;
@@ -2036,12 +2051,22 @@ function render() {
           if (capCol === -1) return;
           const capEl = document.createElement('div');
           capEl.className = 'date-cap';
-          capEl.style.left   = `calc(${capCol * colW}% + 3px)`;
-          capEl.style.width  = `${colW}%`;
-          capEl.style.top    = top + 'px';
-          capEl.style.height = BAR_H + 'px';
+          capEl.style.left      = `calc(${capCol * colW}% + 3px)`;
+          capEl.style.width     = `${colW}%`;
+          capEl.style.top       = top + 'px';
+          capEl.style.height    = BAR_H + 'px';
           capEl.style.background = cap.color;
-          capEl.title = cap.label === 'D' ? `Delivery: ${fmtRange(cap.date, cap.date)}` : `Live: ${fmtRange(cap.date, cap.date)}`;
+          capEl.style.display   = 'flex';
+          capEl.style.alignItems = 'center';
+          capEl.style.paddingLeft = '6px';
+          capEl.style.fontSize  = '9.5px';
+          capEl.style.fontWeight = '700';
+          capEl.style.color     = '#fff';
+          capEl.style.letterSpacing = '0.02em';
+          capEl.style.overflow  = 'hidden';
+          capEl.style.whiteSpace = 'nowrap';
+          capEl.textContent     = cap.label;
+          capEl.title = cap.label === 'Delivery' ? `Delivery: ${fmtRange(cap.date, cap.date)}` : `Live: ${fmtRange(cap.date, cap.date)}`;
           capEl.style.cursor = 'pointer';
           capEl.addEventListener('mouseenter', e => showTooltip(e, ev));
           capEl.addEventListener('mousemove', moveTooltip);
@@ -2049,6 +2074,60 @@ function render() {
           capEl.addEventListener('click', () => { if (!isLocked) openEdit(ev.id); });
           barsLayer.appendChild(capEl);
         });
+
+        // Render Publicis SLA bar — from ev.end+1 to ev.liveDate (if both exist)
+        if (ev.liveDate && ev.end < ev.liveDate) {
+          const slaStart = addDays(ev.end, 1);
+          const slaEnd   = ev.liveDate;
+          if (slaStart <= weekEnd && slaEnd >= weekStart) {
+            const job = getJobByKey(ev.color);
+            const hex = job.hex.startsWith('rgba') ? '#1565C0' : job.hex;
+            // Parse hex to RGB for muted color
+            let r=128,g=128,b=128;
+            if (hex.startsWith('#') && hex.length===7) {
+              r = parseInt(hex.slice(1,3),16);
+              g = parseInt(hex.slice(3,5),16);
+              b = parseInt(hex.slice(5,7),16);
+            }
+            const slaSegStart = slaStart < weekStart ? weekStart : slaStart;
+            const slaSegEnd   = slaEnd   > weekEnd   ? weekEnd   : slaEnd;
+            const slaStartCol = weekDays.findIndex(d => d.date === slaSegStart);
+            const slaEndCol   = weekDays.findIndex(d => d.date === slaSegEnd);
+            if (slaStartCol !== -1 && slaEndCol !== -1) {
+              const slaEl = document.createElement('div');
+              slaEl.className = 'sla-bar';
+              const slaSlot = slot + 1; // render one slot below main bar
+              slaEl.style.position  = 'absolute';
+              slaEl.style.left      = `calc(${slaStartCol * colW}% + 3px)`;
+              slaEl.style.width     = `calc(${(slaEndCol - slaStartCol + 1) * colW}% - 6px)`;
+              slaEl.style.top       = (slaSlot * (BAR_H + BAR_GAP)) + 'px';
+              slaEl.style.height    = BAR_H + 'px';
+              slaEl.style.borderRadius = '4px';
+              slaEl.style.overflow  = 'hidden';
+              slaEl.style.display   = 'flex';
+              slaEl.style.alignItems = 'center';
+              slaEl.style.paddingLeft = '6px';
+              slaEl.style.fontSize  = '9px';
+              slaEl.style.fontWeight = '600';
+              slaEl.style.color     = `rgba(${r},${g},${b},0.8)`;
+              slaEl.style.whiteSpace = 'nowrap';
+              slaEl.style.overflow  = 'hidden';
+              slaEl.style.cursor    = 'default';
+              // Checker pattern using job color at low opacity
+              slaEl.style.background = `repeating-linear-gradient(
+                45deg,
+                rgba(${r},${g},${b},0.12) 0px,
+                rgba(${r},${g},${b},0.12) 4px,
+                rgba(${r},${g},${b},0.04) 4px,
+                rgba(${r},${g},${b},0.04) 8px
+              )`;
+              slaEl.style.border    = `1px solid rgba(${r},${g},${b},0.25)`;
+              slaEl.textContent     = 'Publicis SLA';
+              slaEl.title           = `Publicis SLA: ${fmtRange(slaStart, slaEnd)}`;
+              barsLayer.appendChild(slaEl);
+            }
+          }
+        }
       }); // end segments.forEach
     }); // end weekEvents.forEach
 
