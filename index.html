@@ -1880,29 +1880,39 @@ function render() {
       }
       cell.dataset.date = dayObj.date;
 
+      // Date number + holiday on same line
+      const numRow = document.createElement('div');
+      numRow.style.cssText = 'display:flex;align-items:center;gap:5px;padding:5px 5px 0 6px;flex-shrink:0;min-height:28px;';
+
       const num = document.createElement('div');
       num.className = 'day-num';
+      num.style.margin = '0'; // override default margin since we're in flex
       num.textContent = parseInt(dayObj.date.split('-')[2]);
-      cell.appendChild(num);
+      numRow.appendChild(num);
 
       if (usHoliday) {
-        const hTag = document.createElement('div');
+        const hTag = document.createElement('span');
         hTag.className = 'holiday-tag';
+        hTag.style.cssText = 'margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:calc(100% - 36px);';
         hTag.textContent = usHoliday.name;
-        cell.appendChild(hTag);
+        numRow.appendChild(hTag);
       }
       if (usObservance) {
-        const obsTag = document.createElement('div');
+        const obsTag = document.createElement('span');
         obsTag.className = 'holiday-tag-ca';
+        obsTag.style.cssText = 'margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:calc(100% - 36px);';
         obsTag.textContent = '🎖️ ' + usObservance.name;
-        cell.appendChild(obsTag);
+        numRow.appendChild(obsTag);
       }
       if (caHoliday) {
-        const caTag = document.createElement('div');
+        const caTag = document.createElement('span');
         caTag.className = 'holiday-tag-ca';
+        caTag.style.cssText = 'margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:calc(100% - 36px);';
         caTag.textContent = '🇨🇦 ' + caHoliday.name.replace(' (CA)', '');
-        cell.appendChild(caTag);
+        numRow.appendChild(caTag);
       }
+
+      cell.appendChild(numRow);
 
       // Drop target
       cell.addEventListener('dragover', e => { e.preventDefault(); cell.classList.add('drop-target'); });
@@ -1936,9 +1946,8 @@ function render() {
 
     // Bars layer — absolutely positioned over all 7 cells in this week
     // Offset dynamically: if any day this week has a holiday tag, start bars lower
-    const weekHasHoliday = weekDays.some(d => getHolidaysOnDate(d.date).length > 0);
     const BAR_H = getBAR_H(), BAR_GAP = getBAR_GAP(), DAY_NUM_H = getDAY_NUM_H();
-    const barsTopOffset = weekHasHoliday ? Math.round(DAY_NUM_H * 1.7) : DAY_NUM_H;
+    const barsTopOffset = DAY_NUM_H; // consistent for all weeks — holidays now inline with date
 
     const barsLayer = document.createElement('div');
     barsLayer.className = 'bars-layer';
