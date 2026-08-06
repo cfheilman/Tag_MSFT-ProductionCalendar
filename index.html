@@ -53,7 +53,7 @@
 
     /* Bar geometry */
     --bar-h:      20px;
-    --bar-gap:    3px;
+    --bar-gap:    5px;
     --day-num-h:  28px;
   }
 
@@ -249,18 +249,19 @@
     to   { opacity: 1; transform: translateY(0); }
   }
   .week-row {
+    border-bottom: 1.5px solid #D8D8E0;
     display: grid; grid-template-columns: repeat(7, 1fr);
     position: relative; border-bottom: 1px solid #E2E2E7;
   }
   .week-row:last-child { border-bottom: none; }
 
   .day-cell {
-    border-right: 1px solid #E2E2E7; background: #FFFFFF;
+    border-right: 1.5px solid #DDDDE4; background: #FFFFFF;
     position: relative; height: 155px; min-height: 155px; max-height: 155px;
     overflow: hidden; transition: background 0.12s;
   }
   .day-cell:last-child { border-right: none; }
-  .day-cell.weekend { background: #F4F4F8; }
+  .day-cell.weekend { background: #EEEEEF; }
   .day-cell.other-month { background: var(--other-month); }
   .day-cell.today {
     background: linear-gradient(180deg, #FFFCF0 0%, #FFF9E8 100%);
@@ -297,14 +298,14 @@
     position: absolute; top: var(--day-num-h); left: 0; right: 0; pointer-events: none;
   }
   .event-bar {
-    position: absolute; height: 19px; border-radius: 5px;
-    font-size: 11px; font-weight: 600; color: #fff;
+    position: absolute; height: 21px; border-radius: 5px;
+    font-size: 11px; font-weight: 700; color: #fff;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    padding: 0 8px; display: flex; align-items: center;
+    padding: 0 8px 0 10px; display: flex; align-items: center;
     cursor: pointer; pointer-events: all;
     transition: opacity 0.15s, filter 0.15s, transform 0.12s;
     z-index: 3; user-select: none; letter-spacing: -0.015em;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.22), inset 3px 0 0 rgba(255,255,255,0.25);
   }
   .event-bar:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.22); }
   .event-bar.dragging { opacity: 0.3; }
@@ -771,14 +772,14 @@
   }
   body.dark-mode .calendar { border-color: #3A3A50; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   body.dark-mode .day-cell { background: #17171F; border-color: #3A3A52; }
-  body.dark-mode .day-cell.weekend { background: #14141C; }
+  body.dark-mode .day-cell.weekend { background: #111118; }
   body.dark-mode .day-cell.other-month { background: #0E0E14; }
   body.dark-mode .day-cell.today { background: linear-gradient(180deg, #1E1A0A 0%, #1A1600 100%); }
   body.dark-mode .day-cell.past { background: #111118; }
   body.dark-mode .day-cell.past.weekend { background: #0F0F16; }
   body.dark-mode .day-cell.past .day-num { color: #30304A; }
   body.dark-mode .day-cell.other-month .day-num { color: #28283A; }
-  body.dark-mode .week-row { border-bottom-color: #3A3A52; }
+  body.dark-mode .week-row { border-bottom-color: #44445E; }
   body.dark-mode .day-cell { border-right-color: #3A3A52; }
   body.dark-mode .modal { background: #1A1A24; border-color: #2A2A38; }
   body.dark-mode .modal h3 { color: #E8E8F4; }
@@ -1207,6 +1208,10 @@
     <div class="legend-dot" style="background:#E65100"></div>Delivery
     <div class="legend-dot" style="background:#C62828;margin-left:8px;"></div>Live
   </div>
+  <div id="sla-toggle" style="display:flex;align-items:center;gap:5px;font-size:10px;color:#aaa;margin-left:8px;padding-left:8px;border-left:1px solid #333;cursor:pointer;user-select:none;" title="Toggle Publicis SLA bars">
+    <div style="width:22px;height:8px;border:2px dashed rgba(100,100,180,0.6);border-radius:2px;background:repeating-linear-gradient(45deg,rgba(100,100,180,0.15) 0px,rgba(100,100,180,0.15) 3px,transparent 3px,transparent 6px);"></div>
+    <span id="sla-toggle-label">SLA</span>
+  </div>
   <div style="margin-left:auto;">
     <button class="lock-btn" id="lock-btn" title="View only mode">🔒 Locked</button>
   </div>
@@ -1323,6 +1328,17 @@
       <label class="checkbox-row">
         <input type="checkbox" id="ev-skip-holidays" />
         Skip company holidays
+      </label>
+    </div>
+    <div class="modal-field" id="sla-options-row" style="display:none;">
+      <label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px;">Publicis SLA options</label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="ev-sla-weekdays-only" />
+        Exclude weekends from SLA
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="ev-sla-skip-holidays" />
+        Exclude US holidays from SLA
       </label>
     </div>
     <div class="modal-field push-job-row" id="push-job-row" style="display:none;">
@@ -1755,7 +1771,7 @@ function getCSSVar(name) {
   return parseInt(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0;
 }
 const BAR_H_BASE   = 20;
-const BAR_GAP_BASE = 3;
+const BAR_GAP_BASE = 5;
 const DAY_NUM_H_BASE = 28;
 const CELL_PAD  = 2;
 // Dynamic getters — called per render so they respect current viewport/CSS
@@ -1814,6 +1830,16 @@ function render() {
   // Assign slots GLOBALLY so each event keeps the same row across all weeks
   const globalSlotMap = {}; // eventId -> slot (consistent across all weeks)
   const globalSlotOccupied = []; // slot -> array of [effectiveStart, effectiveEnd]
+
+  // Helper: get last working day on or before a date respecting SLA flags
+  function getSlaEffectiveEnd(ev) {
+    if (!ev.liveDate || ev.liveDate <= ev.end) return ev.end;
+    if (!ev.slaWeekdaysOnly && !ev.slaSkipHolidays) return ev.liveDate;
+    // Walk back from liveDate to find last valid SLA day
+    let d = ev.liveDate;
+    // For slot purposes just use liveDate — visual rendering handles the detail
+    return ev.liveDate;
+  }
 
   // Sort by start date then duration so longer/earlier events claim lower slots first
   [...visibleEvents].sort((a,b) => {
@@ -2118,7 +2144,7 @@ function render() {
       } // end if (jobInThisWeek)
 
       // Render Publicis SLA bar — same row as job bar, extending from end date to live date
-        if (ev.liveDate && ev.end < ev.liveDate) {
+        if (showSLA && ev.liveDate && ev.end < ev.liveDate) {
           const slaStart = addDays(ev.end, 1);
           const slaEnd   = ev.liveDate;
           if (slaStart <= weekEnd && slaEnd >= weekStart) {
@@ -2130,8 +2156,17 @@ function render() {
               g = parseInt(hex.slice(3,5),16);
               b = parseInt(hex.slice(5,7),16);
             }
-            const slaSegStart = slaStart < weekStart ? weekStart : slaStart;
-            const slaSegEnd   = slaEnd   > weekEnd   ? weekEnd   : slaEnd;
+            // Filter valid SLA days based on job's SLA flags
+            const validSlaDays = weekDays.filter(d => {
+              if (d.date < slaStart || d.date > slaEnd) return false;
+              if (ev.slaWeekdaysOnly) { const dow = new Date(d.date + 'T12:00:00').getDay(); if (dow === 0 || dow === 6) return false; }
+              if (ev.slaSkipHolidays && getHolidaysOnDate(d.date).some(h => !h.ca)) return false;
+              return true;
+            });
+            if (validSlaDays.length === 0) { /* no valid SLA days this week */ }
+            else {
+            const slaSegStart = validSlaDays[0].date;
+            const slaSegEnd   = validSlaDays[validSlaDays.length-1].date;
             const slaStartCol = weekDays.findIndex(d => d.date === slaSegStart);
             const slaEndCol   = weekDays.findIndex(d => d.date === slaSegEnd);
             if (slaStartCol !== -1 && slaEndCol !== -1) {
@@ -2161,7 +2196,7 @@ function render() {
                 rgba(${r},${g},${b},0.04) 4px,
                 rgba(${r},${g},${b},0.04) 8px
               )`;
-              slaEl.style.border    = `1px solid rgba(${r},${g},${b},0.3)`;
+              slaEl.style.border    = `2px dashed rgba(${r},${g},${b},0.35)`;
               slaEl.style.borderLeft = `3px solid rgba(${r},${g},${b},0.55)`;
               slaEl.innerHTML        = `↳ Publicis SLA <em style="font-style:italic;opacity:0.7;margin-left:4px;">${ev.name}</em>`;
               slaEl.title           = `Publicis SLA · ${ev.name} · ${fmtRange(slaStart, slaEnd)}`;
@@ -2192,7 +2227,8 @@ function render() {
                   barsLayer.appendChild(liveCapEl);
                 }
               }
-            }
+            } // end if slaStartCol
+            } // end else validSlaDays
           }
         }
     }); // end weekEvents.forEach
@@ -2246,6 +2282,7 @@ function renderStatsBar() {
 
 // ── Daily Standup panel ─────────────────────────────────────────
 let standupFilter = null; // job color key, null = "all active", 'delivering' = delivering this month
+let showSLA = localStorage.getItem('prodcal2_showSLA') !== 'false'; // default on
 
 const STATUS_LABELS = {
   'production': 'In Production',
@@ -3130,6 +3167,9 @@ function openEdit(id) {
   document.getElementById('ev-status').value        = ev.status || '';
   document.getElementById('ev-delivery-date').value = ev.deliveryDate || '';
   document.getElementById('ev-live-date').value      = ev.liveDate || '';
+  document.getElementById('ev-sla-weekdays-only').checked = ev.slaWeekdaysOnly || false;
+  document.getElementById('ev-sla-skip-holidays').checked = ev.slaSkipHolidays || false;
+  document.getElementById('sla-options-row').style.display = ev.liveDate ? 'block' : 'none';
   document.getElementById('ev-notes').value = ev.notes || '';
   document.getElementById('ev-weekdays-only').checked = ev.weekdaysOnly || false;
   document.getElementById('ev-skip-holidays').checked = ev.skipHolidays || false;
@@ -3154,6 +3194,9 @@ function openAdd(date) {
   document.getElementById('ev-status').value        = '';
   document.getElementById('ev-delivery-date').value = '';
   document.getElementById('ev-live-date').value      = '';
+  document.getElementById('ev-sla-weekdays-only').checked = false;
+  document.getElementById('ev-sla-skip-holidays').checked = false;
+  document.getElementById('sla-options-row').style.display = 'none';
   document.getElementById('ev-notes').value = '';
   document.getElementById('ev-weekdays-only').checked = false;
   document.getElementById('ev-skip-holidays').checked = false;
@@ -3181,6 +3224,10 @@ document.getElementById('push-back-btn').addEventListener('click', () => {
   shiftDateInputs(-n);
 });
 
+document.getElementById('ev-live-date').addEventListener('change', function() {
+  document.getElementById('sla-options-row').style.display = this.value ? 'block' : 'none';
+});
+
 document.getElementById('modal-save').addEventListener('click', () => {
   const name         = document.getElementById('ev-name').value.trim();
   const start        = document.getElementById('ev-start').value;
@@ -3192,15 +3239,17 @@ document.getElementById('modal-save').addEventListener('click', () => {
   const status       = document.getElementById('ev-status').value;
   const deliveryDate = document.getElementById('ev-delivery-date').value;
   const liveDate     = document.getElementById('ev-live-date').value;
+  const slaWeekdaysOnly = document.getElementById('ev-sla-weekdays-only').checked;
+  const slaSkipHolidays = document.getElementById('ev-sla-skip-holidays').checked;
   const notes        = document.getElementById('ev-notes').value.trim();
   const weekdaysOnly = document.getElementById('ev-weekdays-only').checked;
   const skipHolidays = document.getElementById('ev-skip-holidays').checked;
   if (!name || !start || !end || end < start) return;
   if (editingId) {
     const ev = events.find(x => x.id === editingId);
-    Object.assign(ev, { name, start, end, color, jobNumber, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays });
+    Object.assign(ev, { name, start, end, color, jobNumber, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
   } else {
-    events.push({ id: nextId++, name, start, end, color, jobNumber, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays });
+    events.push({ id: nextId++, name, start, end, color, jobNumber, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
   }
   modal.classList.remove('open');
   saveData();
@@ -3367,6 +3416,22 @@ applyLockState();
 updateLegendBar();
 render();
 loadData().then(() => { render(); startPolling(); });
+
+// ── SLA toggle ────────────────────────────────────────────────
+function applySLAToggle() {
+  const toggle = document.getElementById('sla-toggle');
+  const label  = document.getElementById('sla-toggle-label');
+  if (!toggle) return;
+  toggle.style.opacity = showSLA ? '1' : '0.4';
+  label.textContent = showSLA ? 'SLA' : 'SLA off';
+}
+document.getElementById('sla-toggle').addEventListener('click', () => {
+  showSLA = !showSLA;
+  localStorage.setItem('prodcal2_showSLA', showSLA ? 'true' : 'false');
+  applySLAToggle();
+  render();
+});
+applySLAToggle();
 
 // ── Search ────────────────────────────────────────────────────
 const searchInput   = document.getElementById('search-input');
