@@ -853,6 +853,7 @@
   }
   .standup-print-btn:hover { border-color: var(--accent); color: #90B8D8; }
 
+
   .standup-close {
     background: none; border: 1px solid transparent; font-size: 20px; color: #44445A;
     cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 7px; transition: all 0.15s;
@@ -1408,6 +1409,7 @@
 </div>
 
 
+
 <div class="standup-overlay" id="standup-overlay"></div>
 <div class="standup-panel" id="standup-panel">
   <div class="standup-header">
@@ -1477,7 +1479,7 @@ async function saveData() {
   // Push to GitHub
   try {
     showSaveIndicator('saving...', '#888');
-    const payload = { events, nextId, updated: Date.now() };
+    const payload = { events, nextId, updated: Date.now(), deliveryLog };
     const res = await fetch(JBIN_URL, {
       method: 'PUT',
       headers: {
@@ -1510,6 +1512,10 @@ async function loadData() {
         events = d.events;
         nextId = d.nextId || DEFAULT_NEXT_ID;
         lastUpdated = d.updated || Date.now();
+        if (d.deliveryLog) {
+          deliveryLog = d.deliveryLog;
+          localStorage.setItem(DELIVERIES_KEY, JSON.stringify(deliveryLog));
+        }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
         localStorage.setItem(STORAGE_ID_KEY, String(nextId));
         return;
@@ -1555,6 +1561,10 @@ async function fetchLatest() {
         events = d.events;
         nextId = d.nextId || nextId;
         lastUpdated = d.updated;
+        if (d.deliveryLog) {
+          deliveryLog = d.deliveryLog;
+          localStorage.setItem(DELIVERIES_KEY, JSON.stringify(deliveryLog));
+        }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
         render();
         showSaveIndicator('↻ updated', '#7ab8e8');
@@ -3451,13 +3461,16 @@ function renderDashboard() {
   const { start, end, label } = getDashboardRange();
   document.getElementById('dashboard-period').textContent = label;
 
-  const inRange = events.filter(ev => ev.color !== 'charcoal' && ev.start <= end && ev.end >= start);
+  // Show all non-OOO jobs regardless of period for full visibility
+  // Still use period for stat calculations but show all jobs in workstream panels
+  const inRange = events.filter(ev => ev.color !== 'charcoal');
+  const inPeriod = events.filter(ev => ev.color !== 'charcoal' && ev.start <= end && ev.end >= start);
   const workstreams = jobRegistry.filter(j => j.key !== 'charcoal');
 
-  const totalJobs      = inRange.length;
-  const totalDelivered = inRange.filter(ev => getJobStatus(ev) === 'delivered').length;
-  const inProgress     = inRange.filter(ev => ['production','qc'].includes(getJobStatus(ev))).length;
-  const inQueue        = inRange.filter(ev => getJobStatus(ev) === 'queued').length;
+  const totalJobs      = inPeriod.length;
+  const totalDelivered = inPeriod.filter(ev => getJobStatus(ev) === 'delivered').length;
+  const inProgress     = inPeriod.filter(ev => ['production','qc'].includes(getJobStatus(ev))).length;
+  const inQueue        = inPeriod.filter(ev => getJobStatus(ev) === 'queued').length;
   const totalDeliveries= inRange
     .filter(ev => getJobStatus(ev) === 'delivered')
     .reduce((s,ev) => s + (parseInt(deliveryLog[ev.id])||0), 0);
@@ -3775,6 +3788,7 @@ document.querySelectorAll('.db-period-btn').forEach(btn => {
     renderDashboard();
   });
 });
+
 
 // ── Dark mode ─────────────────────────────────────────────────
 const DARK_KEY = 'prodcal2_darkmode';
