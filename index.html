@@ -2104,10 +2104,13 @@ function render() {
 
         barsLayer.appendChild(bar);
 
-        // Render delivery cap (orange) only on the job bar
-        // Live Date cap renders at end of SLA bar below
+        // Render delivery cap (orange) on job bar
+        // Live Date cap: on job bar when SLA is toggled off, or when liveDate <= end (no SLA gap)
         const caps = [];
         if (ev.deliveryDate) caps.push({ date: ev.deliveryDate, color: '#E65100', label: 'Delivery' });
+        if (ev.liveDate && (!showSLA || ev.liveDate <= ev.end)) {
+          caps.push({ date: ev.liveDate, color: '#B71C1C', label: 'Live Date' });
+        }
 
         caps.forEach(cap => {
           if (cap.date < weekStart || cap.date > weekEnd) return;
