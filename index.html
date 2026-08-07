@@ -1181,6 +1181,7 @@
     <div class="month-label" id="month-label"></div>
     <button class="nav-btn" id="next-btn">&#8594;</button>
     <button class="today-btn" id="today-btn">Today</button>
+    <button class="today-btn" id="two-month-btn" title="Toggle 2-month view" style="font-size:11px;padding:5px 10px;">2mo</button>
   </div>
 
   <div class="search-wrap" id="search-wrap">
@@ -1779,90 +1780,8 @@ function getBAR_H()     { return getCSSVar('--bar-h')      || BAR_H_BASE; }
 function getBAR_GAP()   { return getCSSVar('--bar-gap')    || BAR_GAP_BASE; }
 function getDAY_NUM_H() { return getCSSVar('--day-num-h')  || DAY_NUM_H_BASE; }
 
-// ── Render ────────────────────────────────────────────────────
-function render() {
-  document.getElementById('month-label').textContent = `${MONTHS[currentMonth]} ${currentYear}`;
-  const weeksEl = document.getElementById('cal-weeks');
-  weeksEl.innerHTML = '';
-
-  const firstDow   = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun
-  const daysInMon  = new Date(currentYear, currentMonth+1, 0).getDate();
-  const today      = todayStr();
-
-  // Build weeks array: each week = array of 7 date strings
-  const weeks = [];
-  let week = [];
-
-  // Fill leading days from prev month
-  const prevMonDays = new Date(currentYear, currentMonth, 0).getDate();
-  for (let i = 0; i < firstDow; i++) {
-    const prevM = currentMonth === 0 ? 11 : currentMonth-1;
-    const prevY = currentMonth === 0 ? currentYear-1 : currentYear;
-    const d = prevMonDays - firstDow + i + 1;
-    week.push({ date: toStr(new Date(prevY, prevM, d)), other: true });
-  }
-
-  for (let d = 1; d <= daysInMon; d++) {
-    week.push({ date: toStr(new Date(currentYear, currentMonth, d)), other: false });
-    if (week.length === 7) { weeks.push(week); week = []; }
-  }
-
-  // Trailing days
-  if (week.length > 0) {
-    const nextM = currentMonth === 11 ? 0 : currentMonth+1;
-    const nextY = currentMonth === 11 ? currentYear+1 : currentYear;
-    let nd = 1;
-    while (week.length < 7) {
-      week.push({ date: toStr(new Date(nextY, nextM, nd++)), other: true });
-    }
-    weeks.push(week);
-  }
-
-  // Collect all events visible in this month view
-  const viewStart = weeks[0][0].date;
-  const viewEnd   = weeks[weeks.length-1][6].date;
-
-  const visibleEvents = events
-    .filter(ev => ev.start <= viewEnd && ev.end >= viewStart)
-    .filter(ev => !activeFilter || ev.color === activeFilter)
-    .sort((a,b) => daysBetween(b.start,b.end) - daysBetween(a.start,a.end));
-
-  // Assign slots GLOBALLY so each event keeps the same row across all weeks
-  const globalSlotMap = {}; // eventId -> slot (consistent across all weeks)
-  const globalSlotOccupied = []; // slot -> array of [effectiveStart, effectiveEnd]
-
-  // Helper: get last working day on or before a date respecting SLA flags
-  function getSlaEffectiveEnd(ev) {
-    if (!ev.liveDate || ev.liveDate <= ev.end) return ev.end;
-    if (!ev.slaWeekdaysOnly && !ev.slaSkipHolidays) return ev.liveDate;
-    // Walk back from liveDate to find last valid SLA day
-    let d = ev.liveDate;
-    // For slot purposes just use liveDate — visual rendering handles the detail
-    return ev.liveDate;
-  }
-
-  // Sort by start date then duration so longer/earlier events claim lower slots first
-  [...visibleEvents].sort((a,b) => {
-    if (a.start !== b.start) return a.start.localeCompare(b.start);
-    const aEnd = a.liveDate && a.liveDate > a.end ? a.liveDate : a.end;
-    const bEnd = b.liveDate && b.liveDate > b.end ? b.liveDate : b.end;
-    return bEnd.localeCompare(aEnd); // longer events first
-  }).forEach(ev => {
-    const effStart = ev.start;
-    const effEnd   = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
-    let slot = 0;
-    while (true) {
-      const occupants = globalSlotOccupied[slot] || [];
-      const conflicts = occupants.some(([os, oe]) => effStart <= oe && effEnd >= os);
-      if (!conflicts) break;
-      slot++;
-    }
-    globalSlotMap[ev.id] = slot;
-    if (!globalSlotOccupied[slot]) globalSlotOccupied[slot] = [];
-    globalSlotOccupied[slot].push([effStart, effEnd]);
-  });
-
-  // Render each week row
+function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
+  const today = todayStr(); // local to renderWeeks
   weeks.forEach((weekDays, wi) => {
     const weekEl = document.createElement('div');
     weekEl.className = 'week-row';
@@ -2132,6 +2051,7 @@ function render() {
           capEl.style.letterSpacing = '0.02em';
           capEl.style.overflow  = 'hidden';
           capEl.style.whiteSpace = 'nowrap';
+          capEl.style.zIndex    = '10'; // always on top, including over holiday backgrounds
           capEl.textContent     = cap.label;
           capEl.title = cap.label === 'Delivery' ? ('Delivery: ' + fmtRange(cap.date, cap.date)) : ('Live: ' + fmtRange(cap.date, cap.date));
           capEl.style.cursor = 'pointer';
@@ -2238,6 +2158,148 @@ function render() {
 
     weeksEl.appendChild(weekEl);
   });
+}
+
+// ── Render ────────────────────────────────────────────────────
+function render() {
+  document.getElementById('month-label').textContent = twoMonthView
+    ? `${MONTHS[currentMonth]} – ${MONTHS[currentMonth === 11 ? 0 : currentMonth+1]} ${currentYear}`
+    : `${MONTHS[currentMonth]} ${currentYear}`;
+  const weeksEl = document.getElementById('cal-weeks');
+  weeksEl.innerHTML = '';
+
+  const firstDow   = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun
+  const daysInMon  = new Date(currentYear, currentMonth+1, 0).getDate();
+  const today      = todayStr();
+
+  // Build weeks array: each week = array of 7 date strings
+  const weeks = [];
+  let week = [];
+
+  // Fill leading days from prev month
+  const prevMonDays = new Date(currentYear, currentMonth, 0).getDate();
+  for (let i = 0; i < firstDow; i++) {
+    const prevM = currentMonth === 0 ? 11 : currentMonth-1;
+    const prevY = currentMonth === 0 ? currentYear-1 : currentYear;
+    const d = prevMonDays - firstDow + i + 1;
+    week.push({ date: toStr(new Date(prevY, prevM, d)), other: true });
+  }
+
+  for (let d = 1; d <= daysInMon; d++) {
+    week.push({ date: toStr(new Date(currentYear, currentMonth, d)), other: false });
+    if (week.length === 7) { weeks.push(week); week = []; }
+  }
+
+  // Trailing days
+  if (week.length > 0) {
+    const nextM = currentMonth === 11 ? 0 : currentMonth+1;
+    const nextY = currentMonth === 11 ? currentYear+1 : currentYear;
+    let nd = 1;
+    while (week.length < 7) {
+      week.push({ date: toStr(new Date(nextY, nextM, nd++)), other: true });
+    }
+    weeks.push(week);
+  }
+
+  // Collect all events visible in this month view
+  const viewStart = weeks[0][0].date;
+  const viewEnd   = weeks[weeks.length-1][6].date;
+
+  const visibleEvents = events
+    .filter(ev => ev.start <= viewEnd && ev.end >= viewStart)
+    .filter(ev => !activeFilter || ev.color === activeFilter)
+    .sort((a,b) => daysBetween(b.start,b.end) - daysBetween(a.start,a.end));
+
+  // Assign slots GLOBALLY so each event keeps the same row across all weeks
+  const globalSlotMap = {}; // eventId -> slot (consistent across all weeks)
+  const globalSlotOccupied = []; // slot -> array of [effectiveStart, effectiveEnd]
+
+  // Helper: get last working day on or before a date respecting SLA flags
+  function getSlaEffectiveEnd(ev) {
+    if (!ev.liveDate || ev.liveDate <= ev.end) return ev.end;
+    if (!ev.slaWeekdaysOnly && !ev.slaSkipHolidays) return ev.liveDate;
+    // Walk back from liveDate to find last valid SLA day
+    let d = ev.liveDate;
+    // For slot purposes just use liveDate — visual rendering handles the detail
+    return ev.liveDate;
+  }
+
+  // Sort by start date then duration so longer/earlier events claim lower slots first
+  [...visibleEvents].sort((a,b) => {
+    if (a.start !== b.start) return a.start.localeCompare(b.start);
+    const aEnd = a.liveDate && a.liveDate > a.end ? a.liveDate : a.end;
+    const bEnd = b.liveDate && b.liveDate > b.end ? b.liveDate : b.end;
+    return bEnd.localeCompare(aEnd); // longer events first
+  }).forEach(ev => {
+    const effStart = ev.start;
+    const effEnd   = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
+    let slot = 0;
+    while (true) {
+      const occupants = globalSlotOccupied[slot] || [];
+      const conflicts = occupants.some(([os, oe]) => effStart <= oe && effEnd >= os);
+      if (!conflicts) break;
+      slot++;
+    }
+    globalSlotMap[ev.id] = slot;
+    if (!globalSlotOccupied[slot]) globalSlotOccupied[slot] = [];
+    globalSlotOccupied[slot].push([effStart, effEnd]);
+  });
+
+  // Render each week row
+  renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap);
+
+  // Second month if 2-month view is active
+  if (twoMonthView) {
+    const m2 = currentMonth === 11 ? 0 : currentMonth + 1;
+    const y2 = currentMonth === 11 ? currentYear + 1 : currentYear;
+
+    // Divider label
+    const divider = document.createElement('div');
+    divider.style.cssText = `
+      background: #13131A; color: #60609A; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 16px;
+      font-family: 'JetBrains Mono', monospace; border-top: 2px solid rgba(46,109,164,0.3);
+    `;
+    divider.textContent = `${MONTHS[m2]} ${y2}`;
+    weeksEl.appendChild(divider);
+
+    // Save and temporarily switch month
+    const origMonth = currentMonth;
+    const origYear  = currentYear;
+    currentMonth = m2;
+    currentYear  = y2;
+
+    // Build second month weeks using same render logic
+    const firstDow2  = new Date(y2, m2, 1).getDay();
+    const daysInMon2 = new Date(y2, m2+1, 0).getDate();
+    const weeks2 = [];
+    let week2 = [];
+    const prevMonDays2 = new Date(y2, m2, 0).getDate();
+    for (let i = 0; i < firstDow2; i++) {
+      const pm = m2 === 0 ? 11 : m2-1;
+      const py = m2 === 0 ? y2-1 : y2;
+      const d = prevMonDays2 - firstDow2 + i + 1;
+      week2.push({ date: toStr(new Date(py, pm, d)), other: true });
+    }
+    for (let d = 1; d <= daysInMon2; d++) {
+      week2.push({ date: toStr(new Date(y2, m2, d)), other: false });
+      if (week2.length === 7) { weeks2.push(week2); week2 = []; }
+    }
+    if (week2.length > 0) {
+      const nm = m2 === 11 ? 0 : m2+1;
+      const ny = m2 === 11 ? y2+1 : y2;
+      let nd = 1;
+      while (week2.length < 7) week2.push({ date: toStr(new Date(ny, nm, nd++)), other: true });
+      weeks2.push(week2);
+    }
+
+    // Render second month using the same renderWeeks logic
+    renderWeeks(weeks2, weeksEl, visibleEvents, globalSlotMap);
+
+    // Restore
+    currentMonth = origMonth;
+    currentYear  = origYear;
+  }
 
   renderStatsBar();
 }
@@ -2286,6 +2348,7 @@ function renderStatsBar() {
 // ── Daily Standup panel ─────────────────────────────────────────
 let standupFilter = null; // job color key, null = "all active", 'delivering' = delivering this month
 let showSLA = localStorage.getItem('prodcal2_showSLA') !== 'false'; // default on
+let twoMonthView = localStorage.getItem('prodcal2_twomonth') === 'true'; // default off
 
 const STATUS_LABELS = {
   'production': 'In Production',
@@ -3419,6 +3482,22 @@ applyLockState();
 updateLegendBar();
 render();
 loadData().then(() => { render(); startPolling(); });
+
+// ── 2-month view toggle ───────────────────────────────────────
+function applyTwoMonthToggle() {
+  const btn = document.getElementById('two-month-btn');
+  if (!btn) return;
+  btn.style.background = twoMonthView ? 'rgba(46,109,164,0.2)' : '';
+  btn.style.borderColor = twoMonthView ? 'var(--accent)' : '';
+  btn.style.color = twoMonthView ? '#90B8D8' : '';
+}
+document.getElementById('two-month-btn').addEventListener('click', () => {
+  twoMonthView = !twoMonthView;
+  localStorage.setItem('prodcal2_twomonth', twoMonthView ? 'true' : 'false');
+  applyTwoMonthToggle();
+  render();
+});
+applyTwoMonthToggle();
 
 // ── SLA toggle ────────────────────────────────────────────────
 function applySLAToggle() {
