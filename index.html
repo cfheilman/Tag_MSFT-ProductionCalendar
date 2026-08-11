@@ -2034,11 +2034,12 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         barsLayer.appendChild(bar);
 
         // Render delivery cap (orange) on job bar
-        // Live Date cap: on job bar when SLA is toggled off, or when liveDate <= end (no SLA gap)
+        // Live Date cap: on job bar only when liveDate <= end (no SLA gap) AND showSLA is on
+        // When showSLA is off, live dates are hidden entirely (use toggle to show/hide)
         const caps = [];
         if (ev.deliveryDate) caps.push({ date: ev.deliveryDate, color: '#E65100', label: 'Delivery' });
-        if (ev.liveDate && (!showSLA || ev.liveDate <= ev.end)) {
-          caps.push({ date: ev.liveDate, color: '#B71C1C', label: 'Live Date' });
+        if (showSLA && ev.liveDate && ev.liveDate <= ev.end) {
+          caps.push({ date: ev.liveDate, color: '#B71C1C', label: ev.liveDateLabel || 'Live Date' });
         }
 
         caps.forEach(cap => {
@@ -2131,8 +2132,8 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
           }
         }
 
-        // Live Date cap — always renders independently, never gated by SLA
-        if (ev.liveDate && ev.liveDate >= weekStart && ev.liveDate <= weekEnd) {
+        // Live Date cap — toggles with SLA visibility
+        if (showSLA && ev.liveDate && ev.liveDate >= weekStart && ev.liveDate <= weekEnd) {
           const liveDateCol = weekDays.findIndex(d => d.date === ev.liveDate);
           if (liveDateCol !== -1) {
             const liveCapEl = document.createElement('div');
