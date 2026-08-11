@@ -2305,8 +2305,12 @@ function render() {
       weeks2.push(week2);
     }
 
+    // Remove first week of month 2 if it overlaps with last week of month 1
+    const lastWeek1End = weeks[weeks.length - 1][6].date;
+    const filteredWeeks2 = weeks2.filter(w => w[0].date > lastWeek1End);
+
     // Render second month using the same renderWeeks logic
-    renderWeeks(weeks2, weeksEl, visibleEvents, globalSlotMap);
+    renderWeeks(filteredWeeks2, weeksEl, visibleEvents, globalSlotMap);
 
     // Restore
     currentMonth = origMonth;
