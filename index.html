@@ -2152,8 +2152,19 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
             liveCapEl.style.whiteSpace = 'nowrap';
             liveCapEl.style.borderRadius = '4px';
             liveCapEl.style.zIndex    = '20';
-            liveCapEl.textContent     = 'Live Date';
-            liveCapEl.title           = 'Live: ' + fmtRange(ev.liveDate, ev.liveDate);
+            liveCapEl.textContent     = ev.liveDateLabel || 'Live Date';
+            liveCapEl.title           = 'Live: ' + fmtRange(ev.liveDate, ev.liveDate) + ' · Right-click to rename';
+            liveCapEl.addEventListener('contextmenu', e => {
+              e.preventDefault();
+              e.stopPropagation();
+              const current = ev.liveDateLabel || 'Live Date';
+              const newLabel = prompt('Rename Live Date label:', current);
+              if (newLabel !== null) {
+                ev.liveDateLabel = newLabel.trim() || 'Live Date';
+                saveData();
+                render();
+              }
+            });
             liveCapEl.style.cursor    = 'pointer';
             liveCapEl.addEventListener('mouseenter', e => showTooltip(e, ev));
             liveCapEl.addEventListener('mousemove', moveTooltip);
@@ -3364,6 +3375,7 @@ document.getElementById('modal-save').addEventListener('click', () => {
   if (editingId) {
     const ev = events.find(x => x.id === editingId);
     Object.assign(ev, { name, start, end, color, jobNumber, colorOverride, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
+    if (!liveDate) ev.liveDateLabel = null; // clear label if live date removed
   } else {
     events.push({ id: nextId++, name, start, end, color, jobNumber, colorOverride, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
   }
