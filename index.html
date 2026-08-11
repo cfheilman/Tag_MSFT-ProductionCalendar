@@ -1292,6 +1292,12 @@
         <button type="button" class="btn btn-secondary" id="new-job-add-btn" style="padding:6px 12px;font-size:12px;">Add</button>
       </div>
       <input type="hidden" id="ev-color" />
+      <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+        <label style="font-size:11px;color:var(--text-muted);white-space:nowrap;">Bar color override:</label>
+        <input type="color" id="ev-color-override" value="#1565C0" style="width:30px;height:28px;border:1px solid var(--border-strong);border-radius:5px;cursor:pointer;padding:2px;" title="Override bar color without changing workstream" />
+        <button type="button" id="ev-color-override-clear" class="btn btn-secondary" style="font-size:10px;padding:4px 8px;">Use default</button>
+        <span style="font-size:10px;color:var(--text-faint);">Keeps workstream, just changes the bar color</span>
+      </div>
     </div>
     <div class="modal-field" style="display:flex;gap:10px;">
       <div style="flex:0.6;">
@@ -1987,6 +1993,10 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
           bar.style.color = '#fff';
         }
         bar.dataset.id = ev.id;
+        // Apply color override if set (overrides workstream color without changing workstream)
+        if (ev.colorOverride && ev.status !== 'delivered') {
+          bar.style.background = ev.colorOverride;
+        }
         bar.style.left   = `calc(${leftPct}% + 3px)`;
         bar.style.width  = `calc(${widthPct}% - 6px)`;
         bar.style.top    = top + 'px';
@@ -2205,7 +2215,10 @@ function render() {
   const viewEnd   = weeks[weeks.length-1][6].date;
 
   const visibleEvents = events
-    .filter(ev => ev.start <= viewEnd && ev.end >= viewStart)
+    .filter(ev => {
+      const effectiveEnd = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
+      return ev.start <= viewEnd && effectiveEnd >= viewStart;
+    })
     .filter(ev => !activeFilter || ev.color === activeFilter)
     .sort((a,b) => daysBetween(b.start,b.end) - daysBetween(a.start,a.end));
 
@@ -3227,6 +3240,9 @@ function openEdit(id) {
   document.getElementById('ev-end').min     = todayStr();
   renderJobPicker(ev.color);
   document.getElementById('ev-job-number').value = ev.jobNumber || '';
+  document.getElementById('ev-color-override').value = ev.colorOverride || '#1565C0';
+  document.getElementById('ev-color-override').dataset.active = ev.colorOverride ? 'true' : 'false';
+  document.getElementById('ev-color-override').style.opacity = ev.colorOverride ? '1' : '0.35';
   document.getElementById('ev-producer').value = ev.producer || '';
   document.getElementById('ev-editor').value   = ev.editor || '';
   document.getElementById('ev-status').value        = ev.status || '';
@@ -3254,6 +3270,9 @@ function openAdd(date) {
   document.getElementById('ev-end').min     = todayStr();
   renderJobPicker(jobRegistry[0].key);
   document.getElementById('ev-job-number').value = '';
+  document.getElementById('ev-color-override').value = '#1565C0';
+  document.getElementById('ev-color-override').dataset.active = 'false';
+  document.getElementById('ev-color-override').style.opacity = '0.35';
   document.getElementById('ev-producer').value = '';
   document.getElementById('ev-editor').value   = '';
   document.getElementById('ev-status').value        = '';
@@ -3274,6 +3293,17 @@ function openAdd(date) {
 }
 modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
 document.getElementById('modal-cancel').addEventListener('click', () => modal.classList.remove('open'));
+
+// Color override handlers
+document.getElementById('ev-color-override').addEventListener('input', function() {
+  this.dataset.active = 'true';
+  this.style.opacity = '1';
+});
+document.getElementById('ev-color-override-clear').addEventListener('click', () => {
+  const el = document.getElementById('ev-color-override');
+  el.dataset.active = 'false';
+  el.style.opacity = '0.35';
+});
 function shiftDateInputs(deltaDays) {
   const startEl = document.getElementById('ev-start');
   const endEl   = document.getElementById('ev-end');
@@ -3299,6 +3329,8 @@ document.getElementById('modal-save').addEventListener('click', () => {
   const end          = document.getElementById('ev-end').value;
   const color        = document.getElementById('ev-color').value;
   const jobNumber    = document.getElementById('ev-job-number').value.trim();
+  const colorOverrideEl = document.getElementById('ev-color-override');
+  const colorOverride = colorOverrideEl.dataset.active === 'true' ? colorOverrideEl.value : null;
   const producer     = document.getElementById('ev-producer').value.trim();
   const editor       = document.getElementById('ev-editor').value.trim();
   const status       = document.getElementById('ev-status').value;
@@ -3312,9 +3344,9 @@ document.getElementById('modal-save').addEventListener('click', () => {
   if (!name || !start || !end || end < start) return;
   if (editingId) {
     const ev = events.find(x => x.id === editingId);
-    Object.assign(ev, { name, start, end, color, jobNumber, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
+    Object.assign(ev, { name, start, end, color, jobNumber, colorOverride, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
   } else {
-    events.push({ id: nextId++, name, start, end, color, jobNumber, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
+    events.push({ id: nextId++, name, start, end, color, jobNumber, colorOverride, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
   }
   modal.classList.remove('open');
   saveData();
