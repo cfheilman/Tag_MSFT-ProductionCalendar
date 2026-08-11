@@ -3173,6 +3173,21 @@ function renderJobPicker(selectedKey) {
       document.querySelectorAll('.job-swatch').forEach(s => s.classList.remove('selected'));
       sw.classList.add('selected');
     });
+    // Right-click to delete custom workstreams (not built-in ones)
+    const builtIn = ['blue2', 'green', 'purple', 'charcoal'];
+    if (!builtIn.includes(job.key)) {
+      sw.title = 'Right-click to delete';
+      sw.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        if (confirm(`Delete workstream "${job.name}"? Any jobs using it will keep their assignments.`)) {
+          const idx = jobRegistry.findIndex(j => j.key === job.key);
+          if (idx !== -1) jobRegistry.splice(idx, 1);
+          saveJobs(jobRegistry);
+          renderJobPicker(selectedKey);
+          updateLegendBar();
+        }
+      });
+    }
     picker.appendChild(sw);
   });
   document.getElementById('ev-color').value = selectedKey || jobRegistry[0].key;
