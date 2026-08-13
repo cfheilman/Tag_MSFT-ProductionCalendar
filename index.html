@@ -70,13 +70,16 @@
     top: 0; left: 0; right: 0; z-index: 9999;
     background: linear-gradient(90deg, #1D5C8F 0%, #5AB0E0 40%, #2E6DA4 80%, #1D5C8F 100%);
   }
+  /* Sticky chrome wraps both top-bar and legend-bar so they scroll together */
+  .sticky-chrome {
+    position: sticky; top: 3px; z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
   .top-bar {
     background: linear-gradient(180deg, #1A1A25 0%, #13131A 100%);
     padding: 0 24px; height: 60px;
     display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 3px; z-index: 100;
     border-bottom: 1px solid #28283A;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 1px 0 rgba(46,109,164,0.25);
   }
   .tag-logo { display: flex; align-items: center; gap: 12px; }
   .tag-divider { width: 1px; height: 28px; background: #2c2c3a; }
@@ -855,6 +858,60 @@
   .standup-print-btn:hover { border-color: var(--accent); color: #90B8D8; }
 
 
+  /* ── PROJECT MANAGER ────────────────────────────────────────── */
+  .pm-toggle-btn { background:none;border:1px solid #2E2E3E;color:#8080B0;padding:5px 13px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;letter-spacing:0.02em; }
+  .pm-toggle-btn:hover { border-color:var(--accent);color:#90B8D8;background:rgba(46,109,164,0.08); }
+  .pm-toggle-btn.active { background:rgba(46,109,164,0.15);border-color:var(--accent);color:#90B8D8; }
+  .pm-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);backdrop-filter:blur(3px);z-index:299; }
+  .pm-overlay.open { display:block; }
+  .pm-panel { position:fixed;top:0;left:-680px;width:660px;max-width:92vw;height:100vh;z-index:300;display:flex;flex-direction:column;background:#F3F3F6;border-right:3px solid var(--accent);box-shadow:1px 0 0 #D0D0DA,16px 0 48px rgba(0,0,0,0.18);transition:left 0.28s cubic-bezier(.4,0,.2,1);font-family:'Segoe UI',sans-serif; }
+  .pm-panel.open { left:0; }
+  .pm-header { display:flex;align-items:center;justify-content:space-between;padding:18px 24px 16px;border-bottom:2px solid rgba(46,109,164,0.2);background:linear-gradient(180deg,#17171F 0%,#13131A 100%);flex-shrink:0; }
+  .pm-header h2 { font-size:19px;font-weight:700;color:#F0F0FF;letter-spacing:-0.025em;margin:0; }
+  .pm-header p { font-size:11px;color:#52526A;margin:3px 0 0;font-family:'JetBrains Mono',monospace; }
+  .pm-close-btn { background:none;border:1px solid transparent;font-size:20px;color:#44445A;cursor:pointer;line-height:1;padding:4px 8px;border-radius:7px;transition:all 0.15s; }
+  .pm-close-btn:hover { background:rgba(255,255,255,0.08);color:#E0E0F0; }
+  .pm-body { flex:1;overflow-y:auto;padding:16px 20px 40px;background:#EDEDF2; }
+  .pm-workstream { margin-bottom:18px; }
+  .pm-ws-header { display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px 10px 0 0;margin-bottom:2px;border-left:4px solid transparent; }
+  .pm-ws-title { font-size:13px;font-weight:700;color:#E8E8FF; }
+  .pm-ws-mc-input { font-size:11px;background:rgba(255,255,255,0.92);border:1px solid rgba(255,255,255,0.3);border-radius:5px;color:#1A1A2A;padding:3px 8px;outline:none;width:180px;font-family:'JetBrains Mono',monospace;font-weight:600; }
+  .pm-ws-mc-link { font-size:10px;color:#7AB8D8;text-decoration:none;padding:3px 8px;background:rgba(46,109,164,0.2);border-radius:5px;white-space:nowrap; }
+  .pm-job { background:#fff;border:1px solid #DDDDE6;border-radius:10px;margin-bottom:6px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+  .pm-job-head { display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;border-left:4px solid transparent;transition:background 0.12s; }
+  .pm-job-head:hover { background:#F8F8FB; }
+  .pm-job-title-wrap { flex:1;min-width:0; }
+  .pm-job-name { font-size:13px;font-weight:700;color:var(--text);letter-spacing:-0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .pm-job-meta { font-size:11px;color:var(--text-muted);margin-top:2px; }
+  .pm-job-status { font-size:9.5px;font-weight:700;padding:2px 9px;border-radius:10px;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;flex-shrink:0;cursor:pointer; }
+  .pm-job-status.production { background:#FEF3C7;color:#92400E; }
+  .pm-job-status.qc { background:#DBEAFE;color:#1E40AF; }
+  .pm-job-status.delivered { background:#DCFCE7;color:#166534; }
+  .pm-job-chevron { font-size:10px;color:var(--text-faint);transition:transform 0.2s;flex-shrink:0; }
+  .pm-job.expanded .pm-job-chevron { transform:rotate(90deg); }
+  .pm-job-body { max-height:0;overflow:hidden;transition:max-height 0.25s ease; }
+  .pm-job.expanded .pm-job-body { max-height:2000px;border-top:1px solid var(--border); }
+  .pm-job-body-inner { padding:14px 16px;display:flex;flex-direction:column;gap:12px; }
+  .pm-section-label { font-size:9.5px;font-weight:700;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px; }
+  .pm-section-label::before { content:'';display:block;width:3px;height:12px;background:var(--accent);border-radius:2px;flex-shrink:0; }
+  .pm-doc-row { display:flex;align-items:center;gap:8px;margin-bottom:4px; }
+  .pm-doc-label { font-size:11px;color:var(--text-muted);width:100px;flex-shrink:0; }
+  .pm-doc-input { flex:1;border:1px solid var(--border-strong);border-radius:6px;padding:5px 9px;font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;background:var(--bg);color:var(--text); }
+  .pm-doc-input:focus { border-color:var(--accent); }
+  .pm-doc-link { font-size:11px;color:var(--accent);text-decoration:none;white-space:nowrap;flex-shrink:0; }
+  .pm-doc-link:hover { text-decoration:underline; }
+  .pm-status-log { display:flex;flex-direction:column;gap:5px; }
+  .pm-status-entry { display:flex;align-items:flex-start;gap:8px;background:#F8F8FB;border:1px solid #E4E4EE;border-radius:7px;padding:7px 10px; }
+  .pm-status-date { font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:700;white-space:nowrap;flex-shrink:0; }
+  .pm-status-text { flex:1;font-size:12px;color:var(--text);line-height:1.5;word-break:break-word; }
+  .pm-status-del { background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:14px;padding:0 2px;flex-shrink:0; }
+  .pm-status-del:hover { color:#dc2626; }
+  .pm-status-input-row { display:flex;gap:6px;align-items:flex-start;margin-top:4px; }
+  .pm-status-date-input { width:90px;border:1px solid var(--border-strong);border-radius:6px;padding:5px 8px;font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;background:var(--bg);color:var(--text);flex-shrink:0; }
+  .pm-status-text-input { flex:1;border:1px solid var(--border-strong);border-radius:6px;padding:6px 9px;font-size:12px;font-family:'Segoe UI',sans-serif;outline:none;resize:vertical;background:var(--bg);color:var(--text);min-height:36px; }
+  .pm-status-add-btn { background:var(--accent);border:none;color:#fff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0; }
+  .pm-status-add-btn:hover { background:#245a8a; }
+
   .standup-close {
     background: none; border: 1px solid transparent; font-size: 20px; color: #44445A;
     cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 7px; transition: all 0.15s;
@@ -921,17 +978,17 @@
   }
 
   /* Standup body */
-  .standup-body { flex: 1; overflow-y: auto; padding: 16px 20px 40px; background: #EDEDF2; }
+  .standup-body { flex: 1; overflow-y: auto; padding: 16px 20px 40px; background: #E8E8EF; }
   .standup-empty { font-size: 13px; color: var(--text-faint); text-align: center; padding: 48px 0; font-style: italic; }
 
   /* Job cards */
   .standup-job {
-    border: 1px solid #DDDDE6; border-radius: 12px;
-    margin-bottom: 10px; overflow: hidden; background: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.03);
+    border: 1px solid #E2E2EA; border-radius: 10px;
+    margin-bottom: 7px; overflow: hidden; background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     transition: box-shadow 0.18s, transform 0.15s;
   }
-  .standup-job:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.11), 0 1px 4px rgba(0,0,0,0.05); transform: translateY(-1.5px); }
+  .standup-job:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.10); transform: translateY(-1px); }
   .standup-job-head {
     padding: 13px 16px; display: flex; align-items: flex-start; gap: 10px;
     border-left: 4px solid var(--border-strong); user-select: none; transition: background 0.12s;
@@ -1051,11 +1108,14 @@
 
   /* Workstream notes */
   .standup-ws-notes {
-    border: 1px solid #DDDDE6; border-radius: 12px; border-left: 4px solid transparent;
-    margin-bottom: 10px; margin-left: 18px; padding: 14px 16px; background: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #C8C8D8; border-radius: 14px; border-left: 5px solid transparent;
+    margin-bottom: 16px; padding: 0; background: #fff;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.09), 0 0 0 1px rgba(0,0,0,0.03);
+    overflow: hidden;
   }
-  .standup-ws-header { margin-bottom: 10px; }
+  .standup-ws-header {
+    padding: 10px 16px 8px; border-bottom: 1px solid var(--border); margin-bottom: 0;
+  }
   .standup-ws-title { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
   .standup-job-people { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
 
@@ -1159,6 +1219,7 @@
 </style>
 </head>
 
+<div class="sticky-chrome">
 <header class="top-bar">
   <div class="tag-logo">
     <!-- TAG logo - actual brand image -->
@@ -1195,6 +1256,7 @@
     <button class="io-btn" id="pdf-export-btn" title="Export current view as PDF">PDF</button>
     <button class="io-btn" id="holidays-btn" title="Manage company holidays">holidays</button>
     <button class="dashboard-toggle-btn" id="dashboard-toggle-btn" title="Toggle dashboard view">⬡ Dashboard</button>
+    <button class="pm-toggle-btn" id="pm-toggle-btn" title="Open Project Manager">⊞ Projects</button>
     <button class="io-btn standup-toggle" id="standup-toggle-btn" title="Open daily standup view">Standup</button>
   </div>
 </header>
@@ -1217,6 +1279,7 @@
     <button class="lock-btn" id="lock-btn" title="View only mode">🔒 Locked</button>
   </div>
 </div>
+</div><!-- end sticky-chrome -->
 
 <div class="view-only-banner">View only — contact the calendar owner to make changes</div>
 
@@ -1406,7 +1469,7 @@
         <div class="dashboard-period-tabs">
           <button class="db-period-btn active" data-period="month">This Month</button>
           <button class="db-period-btn" data-period="quarter">Quarter</button>
-          <button class="db-period-btn" data-period="year">Year to Date</button>
+          <button class="db-period-btn" data-period="year" id="db-ytd-btn">FY27 YTD</button>
         </div>
         <button class="dashboard-close-btn" id="dashboard-close-btn">&times;</button>
       </div>
@@ -1432,6 +1495,16 @@
 </div>
 
 
+
+<!-- ── PROJECT MANAGER PANEL ──────────────────────────────── -->
+<div class="pm-overlay" id="pm-overlay"></div>
+<div class="pm-panel" id="pm-panel">
+  <div class="pm-header">
+    <div><h2>Project Manager</h2><p id="pm-subtitle">Jobs by workstream &amp; quarter</p></div>
+    <button class="pm-close-btn" id="pm-close-btn">&times;</button>
+  </div>
+  <div class="pm-body" id="pm-body"></div>
+</div>
 
 <div class="standup-overlay" id="standup-overlay"></div>
 <div class="standup-panel" id="standup-panel">
@@ -2493,13 +2566,33 @@ function renderStandupFilters() {
   wrap.appendChild(allChip);
 
   jobRegistry.forEach(job => {
+    if (job.key === 'charcoal') return; // skip OOO
     const chip = document.createElement('div');
     chip.className = 'standup-filter-chip' + (standupFilter === job.key ? ' active' : '');
-    chip.style.display = 'flex'; chip.style.alignItems = 'center'; chip.style.gap = '5px';
+    chip.style.display = 'flex'; chip.style.alignItems = 'center'; chip.style.gap = '5px'; chip.style.position = 'relative';
     const dot = document.createElement('span');
     dot.style.cssText = `width:8px;height:8px;border-radius:2px;background:${job.hex.startsWith('rgba') ? '#1565C0' : job.hex};flex-shrink:0;display:inline-block;`;
     chip.appendChild(dot);
     chip.appendChild(document.createTextNode(job.name));
+
+    // Red dot if there are unchecked todo items for this workstream
+    const todoKey = `prodcal2_ws_todo_${job.key}`;
+    try {
+      const todos = JSON.parse(localStorage.getItem(todoKey) || '[]');
+      const pending = todos.filter(t => !t.done).length;
+      if (pending > 0) {
+        const badge = document.createElement('span');
+        badge.style.cssText = `
+          background:#E53935;color:#fff;border-radius:50%;
+          font-size:9px;font-weight:700;line-height:1;
+          min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;
+          padding:0 3px;margin-left:2px;flex-shrink:0;
+        `;
+        badge.textContent = pending;
+        chip.appendChild(badge);
+      }
+    } catch(e) {}
+
     chip.addEventListener('click', () => { standupFilter = job.key; renderStandupFilters(); renderStandupBody(); });
     wrap.appendChild(chip);
   });
@@ -2507,7 +2600,7 @@ function renderStandupFilters() {
   // Delivering This Month chip
   const deliverChip = document.createElement('div');
   deliverChip.className = 'standup-filter-chip delivering-chip' + (standupFilter === 'delivering' ? ' active' : '');
-  deliverChip.textContent = '📦 Delivering This Month';
+  deliverChip.textContent = '📦 Next 7 Days';
   deliverChip.addEventListener('click', () => { standupFilter = 'delivering'; renderStandupFilters(); renderStandupBody(); });
   wrap.appendChild(deliverChip);
 }
@@ -2541,7 +2634,7 @@ function renderStandupBody() {
     if (wsNotes.length > 0) {
       const wsList = document.createElement('ul');
       wsList.className = 'standup-general-list';
-      wsList.style.marginBottom = '8px';
+      wsList.style.cssText = 'margin:10px 16px 8px;';
       wsNotes.forEach((note, i) => {
         const li = document.createElement('li');
         li.addEventListener('click', e => e.stopPropagation());
@@ -2602,7 +2695,7 @@ function renderStandupBody() {
     if (!isLocked) {
       const wsInputRow = document.createElement('div');
       wsInputRow.className = 'standup-general-input-row';
-      wsInputRow.style.marginTop = '6px';
+      wsInputRow.style.cssText = 'margin:6px 16px 12px;';
       const wsInput = document.createElement('textarea');
       wsInput.placeholder = `Add a note for ${job.name}... (Enter to save, Shift+Enter for new line)`;
       wsInput.rows = 2;
@@ -2626,128 +2719,186 @@ function renderStandupBody() {
     // ── Workstream To Do list ────────────────────────────────
     const wsTodoKey = `prodcal2_ws_todo_${standupFilter}`;
     let wsTodos = (() => { try { return JSON.parse(localStorage.getItem(wsTodoKey) || '[]'); } catch(e) { return []; } })();
-    const saveWsTodo = () => localStorage.setItem(wsTodoKey, JSON.stringify(wsTodos));
-
-    const wsTodoWrap = document.createElement('div');
-    wsTodoWrap.className = 'standup-todo-wrap';
-    wsTodoWrap.style.marginTop = '10px';
-    wsTodoWrap.style.marginLeft = '18px';
-    wsTodoWrap.style.background = '#fff';
-    wsTodoWrap.style.border = '1px solid #DDDDE6';
-    wsTodoWrap.style.borderLeft = `4px solid ${job.hex.startsWith('rgba') ? '#1565C0' : job.hex}`;
-    wsTodoWrap.style.borderRadius = '12px';
-    wsTodoWrap.style.padding = '14px 16px';
-    wsTodoWrap.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
-
-    const wsTodoLabel = document.createElement('div');
+    const saveWsTodo = () => { localStorage.setItem(wsTodoKey, JSON.stringify(wsTodos)); renderStandupFilters(); };
     const wsTodoHex = job.hex.startsWith('rgba') ? '#1565C0' : job.hex;
-    wsTodoLabel.className = 'standup-todo-label';
-    const accentBar = document.createElement('span');
-    accentBar.style.cssText = `display:inline-block;width:3px;height:12px;background:${wsTodoHex};border-radius:2px;flex-shrink:0;`;
-    wsTodoLabel.appendChild(accentBar);
-    wsTodoLabel.appendChild(document.createTextNode(` ${job.name} To Do`));
-    wsTodoLabel.style.color = wsTodoHex;
-    wsTodoWrap.appendChild(wsTodoLabel);
+    const todoOpenKey = `standup_todo_open_${standupFilter}`;
+    const todoOpen = localStorage.getItem(todoOpenKey) === 'true';
+    const pendingCount = wsTodos.filter(t => !t.done).length;
 
-    const wsTodoList = document.createElement('ul');
-    wsTodoList.className = 'standup-todo-list';
-    wsTodoWrap.appendChild(wsTodoList);
+    // Todo toggle row (similar to delivered jobs toggle)
+    const wsTodoWrap = document.createElement('div');
+    wsTodoWrap.style.cssText = 'margin:12px 16px 12px;';
 
-    function rerenderWsTodo() {
-      wsTodoList.innerHTML = '';
-      wsTodos.forEach((item, i) => {
-        const li = document.createElement('li');
-        li.className = 'standup-todo-item' + (item.done ? ' done' : '');
+    const todoToggle = document.createElement('div');
+    todoToggle.style.cssText = `
+      display:flex;align-items:center;justify-content:space-between;
+      padding:8px 14px;background:#F8F8FC;
+      border:1px solid ${wsTodoHex}44;border-left:4px solid ${wsTodoHex};
+      border-radius:${todoOpen ? '10px 10px 0 0' : '10px'};
+      cursor:pointer;user-select:none;transition:border-radius 0.2s;
+    `;
 
-        const checkbox = document.createElement('button');
-        checkbox.className = 'standup-todo-check' + (item.done ? ' checked' : '');
-        if (item.done) { checkbox.style.background = wsTodoHex; checkbox.style.borderColor = wsTodoHex; }
-        checkbox.title = item.done ? 'Mark incomplete' : 'Mark complete';
-        checkbox.innerHTML = item.done ? '✓' : '';
-        checkbox.addEventListener('click', e => {
-          e.stopPropagation();
-          wsTodos[i].done = !wsTodos[i].done;
-          saveWsTodo();
-          rerenderWsTodo();
-        });
+    const todoToggleLeft = document.createElement('span');
+    todoToggleLeft.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;';
+    todoToggleLeft.style.color = wsTodoHex;
 
-        const text = document.createElement('span');
-        text.className = 'standup-todo-text';
-        text.textContent = item.text;
-        text.style.cursor = 'text';
-        text.title = 'Click to edit';
-        text.addEventListener('click', e => {
-          e.stopPropagation();
-          const ta = document.createElement('textarea');
-          ta.value = item.text;
-          ta.rows = 1;
-          ta.style.cssText = 'flex:1;border:1px solid var(--border-strong);border-radius:4px;padding:3px 7px;font-size:12px;font-family:\'Segoe UI\',sans-serif;resize:none;outline:none;background:var(--surface);color:var(--text);line-height:1.4;';
-          li.replaceChild(ta, text);
-          ta.focus();
-          const saveEdit = () => {
-            const val = ta.value.trim();
-            if (val) { wsTodos[i].text = val; saveWsTodo(); }
-            rerenderWsTodo();
-          };
-          ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(); } });
-          ta.addEventListener('blur', saveEdit);
-        });
+    const todoTitle = document.createElement('span');
+    todoTitle.textContent = `${job.name} To Do`;
 
-        const del = document.createElement('button');
-        del.className = 'standup-todo-del';
-        del.textContent = '×';
-        del.title = 'Delete';
-        del.addEventListener('click', e => {
-          e.stopPropagation();
-          wsTodos.splice(i, 1);
-          saveWsTodo();
-          rerenderWsTodo();
-        });
-
-        li.appendChild(checkbox);
-        li.appendChild(text);
-        if (!isLocked) li.appendChild(del);
-        wsTodoList.appendChild(li);
-      });
-
-      if (!isLocked) {
-        const inputRow = document.createElement('li');
-        inputRow.className = 'standup-todo-input-row';
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = 'Add a task... (Enter to save)';
-        input.style.cssText = 'flex:1;border:1px solid var(--border-strong);border-radius:5px;padding:5px 9px;font-size:12px;font-family:\'Segoe UI\',sans-serif;outline:none;background:var(--surface);color:var(--text);';
-        input.addEventListener('click', e => e.stopPropagation());
-        input.addEventListener('keydown', e => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            const val = input.value.trim();
-            if (!val) return;
-            wsTodos.push({ text: val, done: false });
-            saveWsTodo();
-            input.value = '';
-            rerenderWsTodo();
-          }
-        });
-        inputRow.appendChild(input);
-        wsTodoList.appendChild(inputRow);
-      }
+    if (pendingCount > 0) {
+      const redDot = document.createElement('span');
+      redDot.style.cssText = `
+        background:#E53935;color:#fff;border-radius:50%;
+        font-size:9px;font-weight:700;line-height:1;
+        min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;
+        padding:0 4px;flex-shrink:0;
+      `;
+      redDot.textContent = pendingCount;
+      todoToggleLeft.appendChild(todoTitle);
+      todoToggleLeft.appendChild(redDot);
+    } else {
+      todoToggleLeft.appendChild(todoTitle);
     }
-    rerenderWsTodo();
+
+    const todoToggleRight = document.createElement('span');
+    todoToggleRight.style.cssText = 'font-size:10px;opacity:0.5;';
+    todoToggleRight.textContent = todoOpen ? '▲' : '▼';
+
+    todoToggle.appendChild(todoToggleLeft);
+    todoToggle.appendChild(todoToggleRight);
+    todoToggle.addEventListener('click', () => {
+      localStorage.setItem(todoOpenKey, todoOpen ? 'false' : 'true');
+      renderStandupBody();
+    });
+    wsTodoWrap.appendChild(todoToggle);
+
+    // Collapsible todo content
+    if (todoOpen) {
+      const todoContent = document.createElement('div');
+      todoContent.style.cssText = `
+        border:1px solid ${wsTodoHex}44;border-top:none;border-left:4px solid ${wsTodoHex};
+        border-radius:0 0 10px 10px;background:#fff;padding:8px 14px 10px;
+      `;
+
+      const wsTodoList = document.createElement('ul');
+      wsTodoList.className = 'standup-todo-list';
+      todoContent.appendChild(wsTodoList);
+
+      function rerenderWsTodo() {
+        wsTodoList.innerHTML = '';
+        wsTodos.forEach((item, i) => {
+          const li = document.createElement('li');
+          li.className = 'standup-todo-item' + (item.done ? ' done' : '');
+
+          const checkbox = document.createElement('button');
+          checkbox.className = 'standup-todo-check' + (item.done ? ' checked' : '');
+          if (item.done) { checkbox.style.background = wsTodoHex; checkbox.style.borderColor = wsTodoHex; }
+          checkbox.title = item.done ? 'Mark incomplete' : 'Mark complete';
+          checkbox.innerHTML = item.done ? '✓' : '';
+          checkbox.addEventListener('click', e => {
+            e.stopPropagation();
+            wsTodos[i].done = !wsTodos[i].done;
+            saveWsTodo();
+            rerenderWsTodo();
+            // Update red dot on toggle
+            const newPending = wsTodos.filter(t => !t.done).length;
+            todoToggleRight.textContent = '▲';
+            todoTitle.textContent = `${job.name} To Do`;
+            // Refresh filters to update chip badge
+            renderStandupFilters();
+          });
+
+          const text = document.createElement('span');
+          text.className = 'standup-todo-text';
+          text.textContent = item.text;
+          text.style.cursor = 'text';
+          text.addEventListener('click', e => {
+            e.stopPropagation();
+            const ta = document.createElement('textarea');
+            ta.value = item.text;
+            ta.rows = 1;
+            ta.style.cssText = 'flex:1;border:1px solid var(--border-strong);border-radius:4px;padding:3px 7px;font-size:12px;font-family:\'Segoe UI\',sans-serif;resize:none;outline:none;background:var(--surface);color:var(--text);line-height:1.4;';
+            li.replaceChild(ta, text);
+            ta.focus();
+            const saveEdit = () => {
+              const val = ta.value.trim();
+              if (val) { wsTodos[i].text = val; saveWsTodo(); }
+              rerenderWsTodo();
+            };
+            ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(); } });
+            ta.addEventListener('blur', saveEdit);
+          });
+
+          const del = document.createElement('button');
+          del.className = 'standup-todo-del';
+          del.textContent = '×';
+          del.addEventListener('click', e => {
+            e.stopPropagation();
+            wsTodos.splice(i, 1);
+            saveWsTodo();
+            rerenderWsTodo();
+            renderStandupFilters();
+          });
+
+          li.appendChild(checkbox);
+          li.appendChild(text);
+          if (!isLocked) li.appendChild(del);
+          wsTodoList.appendChild(li);
+        });
+
+        if (!isLocked) {
+          const inputRow = document.createElement('li');
+          inputRow.className = 'standup-todo-input-row';
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.placeholder = 'Add a task... (Enter to save)';
+          input.style.cssText = 'flex:1;border:1px solid var(--border-strong);border-radius:5px;padding:5px 9px;font-size:12px;font-family:\'Segoe UI\',sans-serif;outline:none;background:var(--surface);color:var(--text);';
+          input.addEventListener('click', e => e.stopPropagation());
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const val = input.value.trim();
+              if (!val) return;
+              wsTodos.push({ text: val, done: false });
+              saveWsTodo();
+              input.value = '';
+              rerenderWsTodo();
+              renderStandupFilters();
+            }
+          });
+          inputRow.appendChild(input);
+          wsTodoList.appendChild(inputRow);
+        }
+      }
+      rerenderWsTodo();
+      wsTodoWrap.appendChild(todoContent);
+    }
+
     wsSection.appendChild(wsTodoWrap);
 
-    // wsSection appended after jobs below
+    // Append wsSection to body FIRST — notes before jobs
+    body.appendChild(wsSection);
+
+    // Visual divider between notes section and jobs
+    const wsDivider = document.createElement('div');
+    wsDivider.style.cssText = 'margin:12px 0 8px;border-top:2px solid rgba(0,0,0,0.08);padding-top:10px;display:flex;align-items:center;gap:8px;';
+    const wsDivLabel = document.createElement('span');
+    const jobObj = getJobByKey(standupFilter);
+    const jobHex = jobObj.hex.startsWith('rgba') ? '#1565C0' : jobObj.hex;
+    wsDivLabel.style.cssText = `font-size:9px;font-weight:700;color:${jobHex};letter-spacing:0.12em;text-transform:uppercase;white-space:nowrap;font-family:"JetBrains Mono",monospace;`;
+    wsDivLabel.textContent = `${jobObj.name} Jobs`;
+    wsDivider.appendChild(wsDivLabel);
+    body.appendChild(wsDivider);
   }
 
   let jobsToShow;
   if (standupFilter === null) {
     jobsToShow = events.filter(ev => ev.start <= today && ev.end >= today && ev.color !== 'charcoal');
   } else if (standupFilter === 'delivering') {
-    const monthStart = toStr(new Date(currentYear, currentMonth, 1));
-    const monthEnd   = toStr(new Date(currentYear, currentMonth + 1, 0));
+    const sevenDaysOut = toStr(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
     jobsToShow = events.filter(ev =>
-      (ev.deliveryDate && ev.deliveryDate >= monthStart && ev.deliveryDate <= monthEnd) ||
-      (ev.liveDate     && ev.liveDate     >= monthStart && ev.liveDate     <= monthEnd)
+      (ev.deliveryDate && ev.deliveryDate >= today && ev.deliveryDate <= sevenDaysOut) ||
+      (ev.liveDate     && ev.liveDate     >= today && ev.liveDate     <= sevenDaysOut)
     );
     jobsToShow = [...jobsToShow].sort((a, b) => {
       const da = ev => ev.deliveryDate || ev.liveDate || ev.end;
@@ -2775,7 +2926,84 @@ function renderStandupBody() {
     return;
   }
 
+  // Split into active (non-delivered) and delivered
+  const activeJobs    = jobsToShow.filter(ev => ev.status !== 'delivered');
+  const deliveredJobs = jobsToShow.filter(ev => ev.status === 'delivered');
+
+  // Render active jobs first
+  const jobsToRender = [...activeJobs];
+
+  // Add delivered jobs section if any exist
+  let deliveredSectionAdded = false;
+  function ensureDeliveredSection() {
+    if (deliveredSectionAdded) return;
+    deliveredSectionAdded = true;
+    const deliveredKey = `standup_delivered_open_${standupFilter || 'all'}`;
+    const deliveredOpen = localStorage.getItem(deliveredKey) === 'true';
+
+    // Spacer above delivered section
+    const spacer = document.createElement('div');
+    spacer.style.cssText = 'margin-top:16px;border-top:2px dashed #D8D8E4;padding-top:12px;';
+    body.appendChild(spacer);
+
+    const toggle = document.createElement('div');
+    toggle.style.cssText = `
+      display:flex;align-items:center;justify-content:space-between;
+      padding:8px 14px;margin-bottom:${deliveredOpen ? '8px' : '0'};
+      background:#F0F0F6;border:1px solid #D8D8E4;border-radius:10px;
+      cursor:pointer;user-select:none;font-size:11px;color:#808098;font-weight:700;
+      letter-spacing:0.04em;
+    `;
+    toggle.innerHTML = `
+      <span style="display:flex;align-items:center;gap:7px;">
+        <span style="font-size:14px;">✓</span>
+        ${deliveredJobs.length} Delivered Job${deliveredJobs.length !== 1 ? 's' : ''}
+      </span>
+      <span style="font-size:10px;opacity:0.6;">${deliveredOpen ? '▲ Hide' : '▼ Show'}</span>`;
+    toggle.addEventListener('click', () => {
+      localStorage.setItem(deliveredKey, deliveredOpen ? 'false' : 'true');
+      renderStandupBody();
+    });
+    body.appendChild(toggle);
+
+    if (deliveredOpen) {
+      deliveredJobs.forEach(ev => {
+        const djob = getJobByKey(ev.color);
+        const dcard = document.createElement('div');
+        dcard.className = 'standup-job';
+        dcard.style.opacity = '0.6';
+        dcard.style.filter = 'grayscale(30%)';
+        const dhead = document.createElement('div');
+        dhead.className = 'standup-job-head';
+        dhead.style.borderLeftColor = djob.hex.startsWith('rgba') ? '#1565C0' : djob.hex;
+        const dtitleWrap = document.createElement('div');
+        dtitleWrap.style.flex = '1';
+        const dname = document.createElement('div');
+        dname.className = 'standup-job-title';
+        dname.textContent = ev.name + (ev.jobNumber ? ` [${ev.jobNumber}]` : '');
+        const dmeta = document.createElement('div');
+        dmeta.className = 'standup-job-meta';
+        dmeta.textContent = fmtRange(ev.start, ev.end);
+        const dbadge = document.createElement('div');
+        dbadge.className = 'standup-job-status delivered';
+        dbadge.textContent = 'Delivered';
+        dtitleWrap.appendChild(dname);
+        dtitleWrap.appendChild(dmeta);
+        dhead.appendChild(dtitleWrap);
+        dhead.appendChild(dbadge);
+        dcard.appendChild(dhead);
+        body.appendChild(dcard);
+      });
+    }
+  }
+
+  if (activeJobs.length === 0 && deliveredJobs.length > 0) {
+    body.innerHTML += '<div class="standup-empty">No active jobs — all delivered.</div>';
+    ensureDeliveredSection();
+  }
+
   jobsToShow.forEach(ev => {
+    if (ev.status === 'delivered') return; // delivered jobs handled separately below
     const job = getJobByKey(ev.color);
     const card = document.createElement('div');
     card.className = 'standup-job';
@@ -2925,6 +3153,31 @@ function renderStandupBody() {
 
     const internalWrap = document.createElement('div');
     internalWrap.className = 'standup-internal-notes';
+
+    // ── Status — most recent PM daily log entry ────────────────
+    const pmEntries = loadPmData ? loadPmData(ev.id) : [];
+    if (pmEntries.length > 0) {
+      const latest = pmEntries[0]; // newest first
+      const statusSection = document.createElement('div');
+      statusSection.style.cssText = 'margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed rgba(200,90,10,0.2);';
+      const statusLabel = document.createElement('div');
+      statusLabel.className = 'standup-internal-label';
+      statusLabel.textContent = 'Status';
+      const statusEntry = document.createElement('div');
+      statusEntry.style.cssText = 'display:flex;gap:8px;align-items:flex-start;margin-top:4px;';
+      const statusDate = document.createElement('span');
+      statusDate.style.cssText = 'font-size:10px;color:var(--accent);font-family:"JetBrains Mono",monospace;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:1px;';
+      statusDate.textContent = latest.date;
+      const statusText = document.createElement('span');
+      statusText.style.cssText = 'font-size:12px;color:var(--text);line-height:1.5;';
+      statusText.textContent = latest.text;
+      statusEntry.appendChild(statusDate);
+      statusEntry.appendChild(statusText);
+      statusSection.appendChild(statusLabel);
+      statusSection.appendChild(statusEntry);
+      internalWrap.appendChild(statusSection);
+    }
+
     const internalLabel = document.createElement('div');
     internalLabel.className = 'standup-internal-label';
     internalLabel.textContent = 'Internal Notes';
@@ -3035,12 +3288,13 @@ function renderStandupBody() {
     bodyDiv.appendChild(internalWrap);
 
     card.appendChild(bodyDiv);
-
     body.appendChild(card);
   });
 
-  // Append workstream notes after all jobs
-  if (wsSection) body.appendChild(wsSection);
+  // After all active jobs, add delivered toggle if not yet added
+  if (!deliveredSectionAdded && deliveredJobs.length > 0) {
+    ensureDeliveredSection();
+  }
 }
 
 document.getElementById('standup-toggle-btn').addEventListener('click', openStandup);
@@ -3378,7 +3632,7 @@ document.getElementById('modal-save').addEventListener('click', () => {
     Object.assign(ev, { name, start, end, color, jobNumber, colorOverride, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
     if (!liveDate) ev.liveDateLabel = null; // clear label if live date removed
   } else {
-    events.push({ id: nextId++, name, start, end, color, jobNumber, colorOverride, producer, editor, status, deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
+    events.push({ id: nextId++, name, start, end, color, jobNumber, colorOverride, producer, editor, status: status || 'production', deliveryDate, liveDate, notes, weekdaysOnly, skipHolidays, slaWeekdaysOnly, slaSkipHolidays });
   }
   modal.classList.remove('open');
   saveData();
@@ -3645,15 +3899,20 @@ let deliveryLogOpen = false;
 
 function getDashboardRange() {
   const now = new Date();
-  const y = now.getFullYear(), m = now.getMonth();
+  const y = now.getFullYear(), m = now.getMonth() + 1; // 1-based month
   if (dashboardPeriod === 'month') {
-    return { start: toStr(new Date(y,m,1)), end: toStr(new Date(y,m+1,0)), label: `${MONTHS[m]} ${y}` };
+    return { start: toStr(new Date(y,m-1,1)), end: toStr(new Date(y,m,0)), label: `${MONTHS[m-1]} ${y}` };
   } else if (dashboardPeriod === 'quarter') {
-    const qs = Math.floor(m/3)*3;
-    return { start: toStr(new Date(y,qs,1)), end: toStr(new Date(y,qs+3,0)), label: `Q${Math.floor(m/3)+1} ${y}` };
+    // Fiscal quarters: Q1=Jul-Sep, Q2=Oct-Dec, Q3=Jan-Mar, Q4=Apr-Jun
+    let fq, fyStart, fyEnd, fy;
+    if (m >= 7) { fy = y + 1; if (m <= 9) { fq = 1; fyStart = new Date(y,6,1); fyEnd = new Date(y,9,0); } else { fq = 2; fyStart = new Date(y,9,1); fyEnd = new Date(y,12,0); } }
+    else        { fy = y;     if (m <= 3) { fq = 3; fyStart = new Date(y,0,1); fyEnd = new Date(y,3,0); } else { fq = 4; fyStart = new Date(y,3,1); fyEnd = new Date(y,6,0); } }
+    return { start: toStr(fyStart), end: toStr(fyEnd), label: `FY${String(fy).slice(2)} Q${fq}` };
   } else {
-    const ytdEnd = toStr(new Date()); // today, not Dec 31
-    return { start: `${y}-01-01`, end: ytdEnd, label: `${y} Year to Date` };
+    // Year to Date — fiscal year starts July 1
+    const fyStartYear = m >= 7 ? y : y - 1;
+    const fyEndYear = fyStartYear + 1;
+    return { start: toStr(new Date(fyStartYear,6,1)), end: toStr(new Date(fyEndYear,5,30)), label: `FY${String(fyStartYear+1).slice(2)} Year to Date` };
   }
 }
 
@@ -3800,7 +4059,18 @@ function renderDashboard() {
   logList.className = 'db-log-list' + (deliveryLogOpen ? ' open' : '');
   logSection.appendChild(logList);
 
-  inRange.sort((a,b) => a.start.localeCompare(b.start)).forEach(ev => {
+  // Delivery log respects the selected period
+  const { start: logStart, end: logEnd } = getDashboardRange();
+  const logJobs = inRange
+    .filter(ev => ev.start <= logEnd && ev.end >= logStart)
+    .sort((a,b) => {
+      // Active jobs first, delivered at bottom
+      const sa = ev => ev.status === 'delivered' ? 1 : 0;
+      if (sa(a) !== sa(b)) return sa(a) - sa(b);
+      return a.start.localeCompare(b.start);
+    });
+
+  logJobs.forEach(ev => {
     const job = getJobByKey(ev.color);
     const hex = job.hex.startsWith('rgba') ? '#1565C0' : job.hex;
     const count = parseInt(deliveryLog[ev.id]) || 0;
@@ -3989,6 +4259,15 @@ document.getElementById('dashboard-toggle-btn').addEventListener('click', () => 
 document.getElementById('dashboard-close-btn').addEventListener('click', closeDashboard);
 document.getElementById('dashboard-blur-bg').addEventListener('click', closeDashboard);
 
+// Set YTD tab label dynamically — updates each fiscal year on July 1
+(function() {
+  const now = new Date();
+  const fyStartYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  const fyLabel = `FY${String(fyStartYear + 1).slice(2)} YTD`;
+  const ytdBtn = document.getElementById('db-ytd-btn');
+  if (ytdBtn) ytdBtn.textContent = fyLabel;
+})();
+
 document.querySelectorAll('.db-period-btn').forEach(btn => {
   btn.addEventListener('click', e => {
     e.stopPropagation();
@@ -3999,6 +4278,304 @@ document.querySelectorAll('.db-period-btn').forEach(btn => {
   });
 });
 
+
+// ── Project Manager ───────────────────────────────────────────
+const PM_STATUS_KEY = 'prodcal2_pm_status_';
+const PM_DOCS_KEY   = 'prodcal2_pm_docs_';
+const PM_MC_KEY     = 'prodcal2_pm_mc_';
+let pmOpen = false;
+
+function loadPmData(evId) { try { return JSON.parse(localStorage.getItem(PM_STATUS_KEY+evId)||'[]'); } catch(e) { return []; } }
+function savePmStatus(evId,e) { localStorage.setItem(PM_STATUS_KEY+evId,JSON.stringify(e)); }
+function loadPmDocs(evId) { try { return JSON.parse(localStorage.getItem(PM_DOCS_KEY+evId)||'{}'); } catch(e) { return {}; } }
+function savePmDocs(evId,d) { localStorage.setItem(PM_DOCS_KEY+evId,JSON.stringify(d)); }
+function loadMC(k) { return localStorage.getItem(PM_MC_KEY+k)||''; }
+function saveMC(k,v) { localStorage.setItem(PM_MC_KEY+k,v); }
+
+function getFiscalQuarter(dateStr) {
+  const m=parseInt(dateStr.split('-')[1]),y=parseInt(dateStr.split('-')[0]);
+  let fq,fy;
+  if(m>=7){fq=m<=9?1:2;fy=y+1;}else{fq=m<=3?3:4;fy=y;}
+  return{label:`FY${String(fy).slice(2)} Q${fq}`,fy,fq};
+}
+function getEffectiveDate(ev){return ev.liveDate||ev.deliveryDate||ev.end;}
+function currentFQ(){return getFiscalQuarter(new Date().toISOString().slice(0,10));}
+
+function renderPM() {
+  const body=document.getElementById('pm-body');
+  body.innerHTML='';
+  const workstreams=jobRegistry.filter(j=>j.key!=='charcoal');
+  const cfq=currentFQ();
+  const statusCycle=['production','qc','delivered',''];
+
+  workstreams.forEach(job=>{
+    const allWsJobs=events.filter(ev=>ev.color===job.key);
+    if(!allWsJobs.length) return;
+    const hex=job.hex.startsWith('rgba')?'#1565C0':job.hex;
+
+    const quarters={};
+    allWsJobs.forEach(ev=>{
+      const fqObj=getFiscalQuarter(getEffectiveDate(ev));
+      ev._fq=fqObj;
+      if(!quarters[fqObj.label]) quarters[fqObj.label]=[];
+      quarters[fqObj.label].push(ev);
+    });
+
+    const sortedQ=Object.keys(quarters).sort((a,b)=>{
+      const fa=quarters[a][0]._fq,fb=quarters[b][0]._fq;
+      const da=(fa.fy-cfq.fy)*4+(fa.fq-cfq.fq),db=(fb.fy-cfq.fy)*4+(fb.fq-cfq.fq);
+      return(da>=0?da:1000+Math.abs(da))-(db>=0?db:1000+Math.abs(db));
+    });
+
+    sortedQ.forEach(quarter=>{
+      const qJobs=quarters[quarter];
+      const fqInfo=qJobs[0]._fq;
+      const fqDiff=(fqInfo.fy-cfq.fy)*4+(fqInfo.fq-cfq.fq);
+      const isPast=fqDiff<0;
+      const pastKey=`pm_past_open_${job.key}_${quarter}`;
+      const pastOpen=localStorage.getItem(pastKey)==='true';
+
+      if(isPast&&!pastOpen){
+        const ar=document.createElement('div');
+        ar.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:7px 14px;background:rgba(0,0,0,0.06);border:1px solid #DDDDE6;border-radius:8px;margin-bottom:6px;cursor:pointer;opacity:0.55;';
+        ar.innerHTML=`<span style="font-size:11px;font-weight:700;color:var(--text-muted);">📦 ${job.name} · ${quarter} (${qJobs.length} job${qJobs.length!==1?'s':''})</span><span style="font-size:10px;color:var(--text-faint);">▼ Show</span>`;
+        ar.addEventListener('click',()=>{localStorage.setItem(pastKey,'true');renderPM();});
+        body.appendChild(ar);return;
+      }
+
+      const group=document.createElement('div');group.className='pm-workstream';
+      const wsHead=document.createElement('div');wsHead.className='pm-ws-header';
+      wsHead.style.background=isPast?'#555':hex;wsHead.style.borderLeftColor=hex;
+      if(isPast) wsHead.style.opacity='0.75';
+
+      const wsLeft=document.createElement('div');wsLeft.style.cssText='display:flex;flex-direction:column;gap:2px;';
+      const wsTitle=document.createElement('div');wsTitle.className='pm-ws-title';wsTitle.textContent=job.name;
+      const wsQLabel=document.createElement('div');wsQLabel.style.cssText='font-size:10px;color:rgba(255,255,255,0.5);font-family:"JetBrains Mono",monospace;';
+      wsQLabel.textContent=quarter+(fqDiff===0?' · Current':isPast?' · Archived':' · Upcoming');
+      wsLeft.appendChild(wsTitle);wsLeft.appendChild(wsQLabel);
+      if(isPast&&pastOpen){const cb=document.createElement('button');cb.style.cssText='background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:2px 7px;border-radius:4px;font-size:10px;cursor:pointer;margin-top:4px;';cb.textContent='▲ Collapse';cb.addEventListener('click',e=>{e.stopPropagation();localStorage.setItem(pastKey,'false');renderPM();});wsLeft.appendChild(cb);}
+      wsHead.appendChild(wsLeft);
+
+      // Mission Control per workstream per quarter — chip style
+      const mcKey=`${job.key}_${quarter.replace(' ','_')}`;
+      const mcVal=loadMC(mcKey);
+      const mcAutoName = `${quarter.replace(' ','')} ${job.name} Mission Control`;
+
+      const mcWrap=document.createElement('div');
+      mcWrap.style.cssText='display:flex;align-items:center;gap:6px;';
+
+      if (mcVal) {
+        // Show as named chip
+        const mcChip = document.createElement('div');
+        mcChip.style.cssText='display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:3px 8px 3px 10px;';
+        const mcLink = document.createElement('a');
+        mcLink.href = mcVal; mcLink.target = '_blank';
+        mcLink.style.cssText='font-size:11px;color:#A8C8E8;text-decoration:none;white-space:nowrap;';
+        mcLink.textContent = mcAutoName;
+        mcLink.addEventListener('mouseover', () => mcLink.style.textDecoration='underline');
+        mcLink.addEventListener('mouseout', () => mcLink.style.textDecoration='none');
+        mcChip.appendChild(mcLink);
+        if (!isLocked) {
+          const mcClear = document.createElement('button');
+          mcClear.style.cssText='background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:13px;padding:0 2px;line-height:1;';
+          mcClear.textContent='×';
+          mcClear.title='Remove Mission Control link';
+          mcClear.addEventListener('click', e=>{e.stopPropagation();saveMC(mcKey,'');renderPM();});
+          mcChip.appendChild(mcClear);
+        }
+        mcWrap.appendChild(mcChip);
+      } else if (!isLocked) {
+        // Show input to add URL
+        const mcLbl=document.createElement('span');
+        mcLbl.style.cssText='font-size:10px;color:rgba(255,255,255,0.35);font-family:"JetBrains Mono",monospace;white-space:nowrap;';
+        mcLbl.textContent='Mission Control:';
+        const mi=document.createElement('input');
+        mi.className='pm-ws-mc-input';
+        mi.placeholder='Paste URL...';
+        mi.value='';
+        mi.addEventListener('change',()=>{saveMC(mcKey,mi.value.trim());renderPM();});
+        mi.addEventListener('click',e=>e.stopPropagation());
+        mcWrap.appendChild(mcLbl);
+        mcWrap.appendChild(mi);
+      }
+      wsHead.appendChild(mcWrap);
+      group.appendChild(wsHead);
+
+      // ── Workstream Pinned Docs ─────────────────────────────
+      const wsPinnedKey = `pm_ws_docs_${job.key}_${quarter.replace(' ','_')}`;
+      const wsPinnedDocs = (() => { try { return JSON.parse(localStorage.getItem(wsPinnedKey) || '[]'); } catch(e) { return []; } })();
+      const saveWsPinned = () => localStorage.setItem(wsPinnedKey, JSON.stringify(wsPinnedDocs));
+
+      const pinnedSection = document.createElement('div');
+      pinnedSection.style.cssText = 'background:#1E1E2A;border-bottom:1px solid #28283A;padding:10px 14px;';
+
+      // Existing pinned docs
+      if (wsPinnedDocs.length > 0) {
+        const pinnedList = document.createElement('div');
+        pinnedList.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;';
+        wsPinnedDocs.forEach((doc, i) => {
+          const chip = document.createElement('div');
+          chip.style.cssText = 'display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:3px 8px 3px 10px;';
+          const docLink = document.createElement('a');
+          docLink.href = doc.url; docLink.target = '_blank';
+          docLink.style.cssText = 'font-size:11px;color:#A8C8E8;text-decoration:none;white-space:nowrap;';
+          docLink.textContent = doc.name || '↗ Doc';
+          docLink.title = doc.url;
+          docLink.addEventListener('mouseover', () => docLink.style.textDecoration = 'underline');
+          docLink.addEventListener('mouseout', () => docLink.style.textDecoration = 'none');
+          chip.appendChild(docLink);
+          if (!isLocked) {
+            const removeBtn = document.createElement('button');
+            removeBtn.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:13px;padding:0 2px;line-height:1;';
+            removeBtn.textContent = '×';
+            removeBtn.title = 'Remove doc';
+            removeBtn.addEventListener('click', e => { e.stopPropagation(); wsPinnedDocs.splice(i,1); saveWsPinned(); renderPM(); });
+            chip.appendChild(removeBtn);
+          }
+          pinnedList.appendChild(chip);
+        });
+        pinnedSection.appendChild(pinnedList);
+      } else if (!isLocked) {
+        const emptyNote = document.createElement('div');
+        emptyNote.style.cssText = 'font-size:10px;color:rgba(255,255,255,0.2);margin-bottom:6px;font-style:italic;';
+        emptyNote.textContent = 'No pinned docs yet — add campaign briefs, timelines or shared resources';
+        pinnedSection.appendChild(emptyNote);
+      }
+
+      // Add doc input row (edit mode only)
+      if (!isLocked) {
+        const addRow = document.createElement('div');
+        addRow.style.cssText = 'display:flex;gap:6px;align-items:center;';
+        const nameInput = document.createElement('input');
+        nameInput.placeholder = 'Doc name...';
+        nameInput.style.cssText = 'width:130px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:5px;color:#E0E0F0;padding:4px 8px;font-size:11px;outline:none;flex-shrink:0;';
+        nameInput.addEventListener('click', e => e.stopPropagation());
+        const urlInput = document.createElement('input');
+        urlInput.placeholder = 'Paste URL...';
+        urlInput.style.cssText = 'flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:5px;color:#E0E0F0;padding:4px 8px;font-size:11px;outline:none;';
+        urlInput.addEventListener('click', e => e.stopPropagation());
+        const pinBtn = document.createElement('button');
+        pinBtn.textContent = '📌 Pin';
+        pinBtn.style.cssText = 'background:rgba(46,109,164,0.3);border:1px solid rgba(46,109,164,0.4);color:#90B8D8;padding:4px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;';
+        pinBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          const url = urlInput.value.trim();
+          const name = nameInput.value.trim() || url.replace(/^https?:\/\//, '').split('/')[0];
+          if (!url) return;
+          wsPinnedDocs.push({ name, url });
+          saveWsPinned();
+          nameInput.value = ''; urlInput.value = '';
+          renderPM();
+        });
+        // Also pin on Enter in url field
+        urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') pinBtn.click(); });
+        addRow.appendChild(nameInput);
+        addRow.appendChild(urlInput);
+        addRow.appendChild(pinBtn);
+        pinnedSection.appendChild(addRow);
+      }
+
+      if (wsPinnedDocs.length > 0 || !isLocked) {
+        group.appendChild(pinnedSection);
+      }
+
+      // Sort: active first, delivered at bottom
+      const statusOrd={'production':0,'qc':1,'':2,'delivered':3};
+      qJobs.sort((a,b)=>(statusOrd[a.status]??2)-(statusOrd[b.status]??2)||a.start.localeCompare(b.start));
+      const activeQ=qJobs.filter(ev=>ev.status!=='delivered');
+      const delivQ=qJobs.filter(ev=>ev.status==='delivered');
+
+      activeQ.forEach(ev=>renderPMJob(ev,hex,group,statusCycle));
+
+      if(delivQ.length>0){
+        const dtKey=`pm_delivered_open_${job.key}_${quarter}`;
+        const dtOpen=localStorage.getItem(dtKey)==='true';
+        const dtToggle=document.createElement('div');
+        dtToggle.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:rgba(0,0,0,0.04);border:1px solid #E2E2E8;border-top:none;cursor:pointer;user-select:none;font-size:11px;color:var(--text-muted);font-weight:600;';
+        dtToggle.innerHTML=`<span>✓ ${delivQ.length} Delivered</span><span style="font-size:10px;">${dtOpen?'▲ Hide':'▼ Show'}</span>`;
+        dtToggle.addEventListener('click',()=>{localStorage.setItem(dtKey,dtOpen?'false':'true');renderPM();});
+        group.appendChild(dtToggle);
+        if(dtOpen) delivQ.forEach(ev=>renderPMJob(ev,hex,group,statusCycle));
+      }
+
+      body.appendChild(group);
+    });
+  });
+}
+
+function renderPMJob(ev,hex,group,statusCycle){
+  const jobEl=document.createElement('div');jobEl.className='pm-job';
+  if(ev.status==='delivered') jobEl.style.opacity='0.7';
+  const head=document.createElement('div');head.className='pm-job-head';head.style.borderLeftColor=hex;
+  const titleWrap=document.createElement('div');titleWrap.className='pm-job-title-wrap';
+  const nameEl=document.createElement('div');nameEl.className='pm-job-name';nameEl.title=ev.name;
+  nameEl.textContent=ev.name+(ev.jobNumber?` [${ev.jobNumber}]`:'');
+  const metaEl=document.createElement('div');metaEl.className='pm-job-meta';
+  metaEl.textContent=fmtRange(ev.start,ev.end)+([ev.producer,ev.editor].filter(Boolean).length?' · '+[ev.producer,ev.editor].filter(Boolean).join(' · '):'');
+  titleWrap.appendChild(nameEl);titleWrap.appendChild(metaEl);
+  const badge=document.createElement('span');badge.className=`pm-job-status ${ev.status||'none'}`;
+  badge.textContent=ev.status?(STATUS_LABELS[ev.status]||ev.status):'+ Status';
+  if(!ev.status) badge.style.cssText='background:transparent;border:1px dashed var(--border-strong);color:var(--text-faint);font-style:italic;';
+  if(!isLocked){badge.style.cursor='pointer';badge.addEventListener('click',e=>{e.stopPropagation();const idx=statusCycle.indexOf(ev.status||'');ev.status=statusCycle[(idx+1)%statusCycle.length];saveData();render();renderPM();});}
+  const chevron=document.createElement('span');chevron.className='pm-job-chevron';chevron.textContent='▶';
+  head.appendChild(titleWrap);head.appendChild(badge);head.appendChild(chevron);
+  head.addEventListener('click',()=>jobEl.classList.toggle('expanded'));
+  jobEl.appendChild(head);
+
+  const bodyDiv=document.createElement('div');bodyDiv.className='pm-job-body';
+  const inner=document.createElement('div');inner.className='pm-job-body-inner';
+
+  // ── Daily Status Log
+  const statSec=document.createElement('div');
+  const statLbl=document.createElement('div');statLbl.className='pm-section-label';statLbl.textContent='Daily Status Log';
+  statSec.appendChild(statLbl);
+  const logList=document.createElement('div');logList.className='pm-status-log';
+  function rerenderLog(){
+    logList.innerHTML='';
+    const entries=loadPmData(ev.id);
+    entries.forEach((entry,i)=>{
+      const row=document.createElement('div');row.className='pm-status-entry';
+      const ds=document.createElement('span');ds.className='pm-status-date';ds.textContent=entry.date;
+      const ts=document.createElement('span');ts.className='pm-status-text';ts.textContent=entry.text;
+      const dl=document.createElement('button');dl.className='pm-status-del';dl.textContent='×';
+      dl.addEventListener('click',e=>{e.stopPropagation();const u=loadPmData(ev.id);u.splice(i,1);savePmStatus(ev.id,u);ev.internalNotesList=u.map(e2=>`[${e2.date}] ${e2.text}`);saveData();rerenderLog();});
+      if(!isLocked) row.appendChild(dl);row.appendChild(ds);row.appendChild(ts);
+      logList.appendChild(row);
+    });
+    if(!isLocked){
+      const ir=document.createElement('div');ir.className='pm-status-input-row';
+      const today2=new Date().toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'2-digit'});
+      const di=document.createElement('input');di.className='pm-status-date-input';di.value=today2;di.addEventListener('click',e=>e.stopPropagation());
+      const ti=document.createElement('textarea');ti.className='pm-status-text-input';ti.rows=2;ti.placeholder='Add status update, note or link...';ti.addEventListener('click',e=>e.stopPropagation());
+      const ab=document.createElement('button');ab.className='pm-status-add-btn';ab.textContent='+ Add';
+      ab.addEventListener('click',e=>{e.stopPropagation();const text=ti.value.trim();if(!text)return;const entries=loadPmData(ev.id);entries.unshift({date:di.value.trim()||today2,text});savePmStatus(ev.id,entries);ev.internalNotesList=entries.map(e2=>`[${e2.date}] ${e2.text}`);saveData();ti.value='';rerenderLog();});
+      ir.appendChild(di);ir.appendChild(ti);ir.appendChild(ab);logList.appendChild(ir);
+    }
+  }
+  rerenderLog();statSec.appendChild(logList);inner.appendChild(statSec);
+
+  // ── Documents — Brief, Naming Doc, Mission Control
+  const docSec=document.createElement('div');
+  const docLbl=document.createElement('div');docLbl.className='pm-section-label';docLbl.textContent='Documents';
+  docSec.appendChild(docLbl);
+  ['Brief','Naming Doc'].forEach(docType=>{
+    const key=docType.toLowerCase().replace(/ /g,'_');
+    const row=document.createElement('div');row.className='pm-doc-row';
+    const lbl=document.createElement('span');lbl.className='pm-doc-label';lbl.textContent=docType+':';row.appendChild(lbl);
+    const d=loadPmDocs(ev.id);
+    if(!isLocked){const inp=document.createElement('input');inp.className='pm-doc-input';inp.placeholder='Paste URL...';inp.value=d[key]||'';inp.addEventListener('click',e=>e.stopPropagation());inp.addEventListener('change',()=>{const nd=loadPmDocs(ev.id);nd[key]=inp.value.trim();savePmDocs(ev.id,nd);renderPM();});row.appendChild(inp);}
+    if(d[key]){const lk=document.createElement('a');lk.className='pm-doc-link';lk.href=d[key];lk.target='_blank';lk.textContent='↗ Open';row.appendChild(lk);}
+    docSec.appendChild(row);
+  });
+  inner.appendChild(docSec);
+  bodyDiv.appendChild(inner);jobEl.appendChild(bodyDiv);group.appendChild(jobEl);
+}
+
+function openPM(){pmOpen=true;renderPM();document.getElementById('pm-panel').classList.add('open');document.getElementById('pm-overlay').classList.add('open');document.getElementById('pm-toggle-btn').classList.add('active');}
+function closePM(){pmOpen=false;document.getElementById('pm-panel').classList.remove('open');document.getElementById('pm-overlay').classList.remove('open');document.getElementById('pm-toggle-btn').classList.remove('active');}
+document.getElementById('pm-toggle-btn').addEventListener('click',()=>pmOpen?closePM():openPM());
+document.getElementById('pm-close-btn').addEventListener('click',closePM);
+document.getElementById('pm-overlay').addEventListener('click',closePM);
 
 // ── Dark mode ─────────────────────────────────────────────────
 const DARK_KEY = 'prodcal2_darkmode';
@@ -4069,7 +4646,7 @@ document.getElementById('standup-print-btn').addEventListener('click', () => {
   jobsToPrint = [...jobsToPrint].sort((a,b) => a.start.localeCompare(b.start));
 
   if (jobsToPrint.length > 0) {
-    const viewLabel = standupFilter === null ? 'Active Today' : standupFilter === 'delivering' ? `Delivering in ${MONTHS[currentMonth]}` : getJobByKey(standupFilter).name;
+    const viewLabel = standupFilter === null ? 'Active Today' : standupFilter === 'delivering' ? 'Delivering — Next 7 Days' : getJobByKey(standupFilter).name;
     html += `<h2>${viewLabel}</h2>`;
     jobsToPrint.forEach(ev => {
       const job = getJobByKey(ev.color);
