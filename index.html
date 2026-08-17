@@ -52,7 +52,7 @@
     --shadow-panel: -12px 0 48px rgba(0,0,0,0.14);
 
     /* Bar geometry */
-    --bar-h:      20px;
+    --bar-h:      21px;
     --bar-gap:    5px;
     --day-num-h:  28px;
   }
@@ -246,21 +246,21 @@
 
   .cal-weeks {
     animation: fadeSlide 0.18s ease both;
+
   }
   @keyframes fadeSlide {
     from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0); }
   }
   .week-row {
-    border-bottom: 1.5px solid #D8D8E0;
     display: grid; grid-template-columns: repeat(7, 1fr);
-    position: relative; border-bottom: 1px solid #E2E2E7;
+    position: relative;
   }
   .week-row:last-child { border-bottom: none; }
 
   .day-cell {
-    border-right: 1.5px solid #DDDDE4; background: #FFFFFF;
-    position: relative; height: 155px; min-height: 155px; max-height: 155px;
+    border-right: 1px solid #E2E2E7; border-bottom: 1px solid #E2E2E7; background: #FFFFFF;
+    position: relative; min-height: 185px; max-height: 185px; height: 185px;
     overflow: hidden; transition: background 0.12s;
   }
   .day-cell:last-child { border-right: none; }
@@ -1242,7 +1242,7 @@
     <div class="month-label" id="month-label"></div>
     <button class="nav-btn" id="next-btn">&#8594;</button>
     <button class="today-btn" id="today-btn">Today</button>
-    <button class="today-btn" id="two-month-btn" title="Toggle 2-month view" style="font-size:11px;padding:5px 10px;">2mo</button>
+    <button class="today-btn" id="two-week-btn" style="font-size:11px;padding:5px 10px;" title="Toggle 2-week view">2wk</button>
   </div>
 
   <div class="search-wrap" id="search-wrap">
@@ -1271,7 +1271,7 @@
     <div class="legend-dot" style="background:#E65100"></div>Delivery
     <div class="legend-dot" style="background:#C62828;margin-left:8px;"></div>Live
   </div>
-  <div id="sla-toggle" style="display:flex;align-items:center;gap:5px;font-size:10px;color:#aaa;margin-left:8px;padding-left:8px;border-left:1px solid #333;cursor:pointer;user-select:none;" title="Toggle Publicis SLA bars">
+  <div id="sla-toggle" style="display:none;" style="display:flex;align-items:center;gap:5px;font-size:10px;color:#aaa;margin-left:8px;padding-left:8px;border-left:1px solid #333;cursor:pointer;user-select:none;" title="Toggle Publicis SLA bars">
     <div style="width:22px;height:8px;border:2px dashed rgba(100,100,180,0.6);border-radius:2px;background:repeating-linear-gradient(45deg,rgba(100,100,180,0.15) 0px,rgba(100,100,180,0.15) 3px,transparent 3px,transparent 6px);"></div>
     <span id="sla-toggle-label">SLA</span>
   </div>
@@ -1304,6 +1304,8 @@
   </div>
 </div>
 
+
+<div id="overflow-popup" style="display:none;position:fixed;z-index:500;background:#fff;border:1px solid #DDDDE4;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:12px;min-width:240px;max-width:320px;"></div>
 
 <button class="add-btn" id="add-btn" title="Add event (N)">+</button>
 <button class="darkmode-btn" id="darkmode-btn" title="Toggle dark mode">☽</button>
@@ -1342,8 +1344,10 @@
         <input type="date" id="ev-delivery-date" />
       </div>
       <div style="flex:1;">
-        <label>Live Date <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
-        <input type="date" id="ev-live-date" />
+<!-- Live Date moved to Project Manager -->
+        <input type="hidden" id="ev-live-date" />
+        <input type="hidden" id="ev-sla-weekdays-only" />
+        <input type="hidden" id="ev-sla-skip-holidays" />
       </div>
     </div>
     <div class="modal-field">
@@ -1367,14 +1371,9 @@
         <label>Job # <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
         <input type="text" id="ev-job-number" placeholder="e.g. 26-1042" />
       </div>
-      <div style="flex:1;">
-        <label>Producer <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
-        <input type="text" id="ev-producer" placeholder="Producer name" />
-      </div>
-      <div style="flex:1;">
-        <label>Editor <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
-        <input type="text" id="ev-editor" placeholder="Editor name" />
-      </div>
+      <!-- Producer/Editor managed in Project Manager -->
+      <input type="hidden" id="ev-producer" />
+      <input type="hidden" id="ev-editor" />
     </div>
     <div class="modal-field">
       <label>Status</label>
@@ -1400,17 +1399,7 @@
         Skip company holidays
       </label>
     </div>
-    <div class="modal-field" id="sla-options-row" style="display:none;">
-      <label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px;">Publicis SLA options</label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="ev-sla-weekdays-only" />
-        Exclude weekends from SLA
-      </label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="ev-sla-skip-holidays" />
-        Exclude US holidays from SLA
-      </label>
-    </div>
+<!-- SLA options moved to Project Manager -->
     <div class="modal-field push-job-row" id="push-job-row" style="display:none;">
       <label>Push entire job</label>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -1542,8 +1531,8 @@ let notesList    = [];
 let editingId    = null;
 let nextId       = 1;
 
-const DEFAULT_EVENTS = [{"id": 2, "name": "Jake OOO", "start": "2026-07-01", "end": "2026-07-02", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 3, "name": "Christian OOO", "start": "2026-07-13", "end": "2026-07-17", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 4, "name": "Dana OOO", "start": "2026-07-15", "end": "2026-07-21", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 6, "name": "Mike OOO", "start": "2026-07-16", "end": "2026-07-22", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": [], "jobNumber": ""}, {"id": 7, "name": "Intel Neo - Exports + QC/QA", "start": "2026-08-12", "end": "2026-08-17", "color": "purple", "producer": "", "editor": "", "status": "", "deliveryDate": "2026-08-17", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true, "internalNotesList": []}, {"id": 10, "name": "Windows - CCS Retail Creator", "start": "2026-07-09", "end": "2026-07-14", "color": "green", "jobNumber": "M1268861", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "Tag to rename with taxonomy + QC/QA + Deliver to Publicis via Sharepoint", "weekdaysOnly": true, "skipHolidays": true, "wbsState": {}, "internalNotesList": ["Renamed and with the QC team. 2 call outs flagged to accounts"]}, {"id": 14, "name": "Hackett OOO", "start": "2026-07-22", "end": "2026-07-27", "color": "charcoal", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true}, {"id": 18, "name": "M365 Marcel Evergreen US", "start": "2026-06-30", "end": "2026-07-29", "color": "blue2", "jobNumber": "M1261428", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 19, "name": "M365 - Copilot Convergence Campaign [1x Anthem | 1x Product (??]", "start": "2026-09-17", "end": "2026-09-20", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "2026-10-01", "notes": "WBS - TBD\n\nROW - 5 non US Markets (2 weeks after US)\n                    IW & SMB Performance layers", "weekdaysOnly": false, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 20, "name": "M365 Marcel Evergreen UK", "start": "2026-06-30", "end": "2026-07-29", "color": "blue2", "jobNumber": "M1267973", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 21, "name": "Windows - Holiday [1x Anthem :30 | 1x Product :15 | 1x Social video (??)]", "start": "2026-09-26", "end": "2026-10-02", "color": "green", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "2026-10-12", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 23, "name": "M365 CTA Update for Low Funnel SMB | US + UK", "start": "2026-07-27", "end": "2026-07-31", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 24, "name": "M365 - Copilot Convergence Campaign - UK + ROW (LF Only)", "start": "2026-09-21", "end": "2026-09-30", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true}, {"id": 37, "name": "Tag Closed // Summer Friday", "start": "2026-08-14", "end": "2026-08-14", "color": "charcoal", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false}];
-const DEFAULT_NEXT_ID = 38;
+const DEFAULT_EVENTS = [{"id": 2, "name": "Jake OOO", "start": "2026-07-01", "end": "2026-07-02", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 3, "name": "Christian OOO", "start": "2026-07-13", "end": "2026-07-17", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 4, "name": "Dana OOO", "start": "2026-07-15", "end": "2026-07-21", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 6, "name": "Mike OOO", "start": "2026-07-16", "end": "2026-07-22", "color": "charcoal", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": [], "jobNumber": ""}, {"id": 7, "name": "Intel Neo - Exports + QC/QA", "start": "2026-08-11", "end": "2026-08-17", "color": "purple", "producer": "", "editor": "", "status": "", "deliveryDate": "2026-08-17", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true, "internalNotesList": [], "jobNumber": "", "slaWeekdaysOnly": false, "slaSkipHolidays": false}, {"id": 10, "name": "Windows - CCS Retail Creator", "start": "2026-07-09", "end": "2026-07-14", "color": "green", "jobNumber": "M1268861", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "Tag to rename with taxonomy + QC/QA + Deliver to Publicis via Sharepoint", "weekdaysOnly": true, "skipHolidays": true, "wbsState": {}, "internalNotesList": ["Renamed and with the QC team. 2 call outs flagged to accounts"]}, {"id": 14, "name": "Hackett OOO", "start": "2026-07-22", "end": "2026-07-27", "color": "charcoal", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": true}, {"id": 18, "name": "M365 Marcel Evergreen US", "start": "2026-06-30", "end": "2026-07-29", "color": "blue2", "jobNumber": "M1261428", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 19, "name": "M365 - BATCH 1 US - Anthem + Excel", "start": "2026-09-17", "end": "2026-09-22", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "2026-10-01", "notes": "WBS - TBD\n\nROW - 5 non US Markets (2 weeks after US)\n                    IW & SMB Performance layers", "weekdaysOnly": false, "skipHolidays": false, "wbsState": {}, "internalNotesList": [], "slaWeekdaysOnly": false, "slaSkipHolidays": false, "colorOverride": null}, {"id": 20, "name": "M365 Marcel Evergreen UK", "start": "2026-06-30", "end": "2026-07-29", "color": "blue2", "jobNumber": "M1267973", "producer": "", "editor": "", "status": "delivered", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "wbsState": {}, "internalNotesList": []}, {"id": 21, "name": "Windows - Holiday [1x UF30 | 1x MF15 | 1x Social video", "start": "2026-09-26", "end": "2026-10-02", "color": "green", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "2026-10-12", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": [], "slaWeekdaysOnly": true, "slaSkipHolidays": true}, {"id": 23, "name": "M365 CTA Update for Low Funnel SMB | US + UK", "start": "2026-07-27", "end": "2026-07-31", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "qc", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "internalNotesList": []}, {"id": 47, "name": "Windows Holiday: MSFT Creator Video [ 1x UF30 | 1x MF15 | 1x Social]", "start": "2026-09-09", "end": "2026-09-22", "color": "green", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "2026-10-05", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "slaWeekdaysOnly": true, "slaSkipHolidays": true, "colorOverride": null, "internalNotesList": []}, {"id": 48, "name": "Windows Holiday: [2x MF 15 + Social Video(s)]", "start": "2026-10-02", "end": "2026-10-08", "color": "green", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "2026-10-19", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "slaWeekdaysOnly": true, "slaSkipHolidays": false, "internalNotesList": []}, {"id": 49, "name": "Christian OOO", "start": "2026-08-27", "end": "2026-08-28", "color": "charcoal", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "slaWeekdaysOnly": false, "slaSkipHolidays": false}, {"id": 50, "name": "Christian OOO", "start": "2026-08-31", "end": "2026-08-31", "color": "charcoal", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": false, "skipHolidays": false, "slaWeekdaysOnly": false, "slaSkipHolidays": false}, {"id": 51, "name": "M365 - BATCH 1 UK - Anthem + Excel", "start": "2026-09-22", "end": "2026-09-30", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "2026-10-15", "notes": "[1x Anthem | 1x Product]", "weekdaysOnly": true, "skipHolidays": false, "slaWeekdaysOnly": false, "slaSkipHolidays": false, "colorOverride": null, "liveDateLabel": null, "wbsState": {}, "internalNotesList": []}, {"id": 52, "name": "M365 BATCH 2 US - CoWork + WorkIQ", "start": "2026-09-24", "end": "2026-10-01", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "slaWeekdaysOnly": false, "slaSkipHolidays": false, "colorOverride": "#4f99ee", "liveDateLabel": null, "internalNotesList": []}, {"id": 54, "name": "M365 - Copilot Convergence Campaign - ROW (BATCH 1 + 2)", "start": "2026-10-01", "end": "2026-10-08", "color": "blue2", "jobNumber": "", "colorOverride": "#003670", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "slaWeekdaysOnly": false, "slaSkipHolidays": false, "liveDateLabel": null, "internalNotesList": []}, {"id": 56, "name": "M365 BATCH 2 UK - CoWork + WorkIQ", "start": "2026-09-29", "end": "2026-10-07", "color": "blue2", "jobNumber": "", "producer": "", "editor": "", "status": "", "deliveryDate": "", "liveDate": "", "notes": "", "weekdaysOnly": true, "skipHolidays": false, "slaWeekdaysOnly": false, "slaSkipHolidays": false, "colorOverride": "#4f99ee", "liveDateLabel": null, "wbsState": {}, "internalNotesList": []}];
+const DEFAULT_NEXT_ID = 58;
 const DATA_VERSION = 'prodcal-v25'; // bump this with every new bake
 const STORAGE_KEY     = 'prodcal2_events_v1';
 const STORAGE_ID_KEY  = 'prodcal2_nextid_v1';
@@ -1838,6 +1827,13 @@ function daysBetween(a, b) {
   return Math.round((ymd(b) - ymd(a)) / 86400000);
 }
 function todayStr() { return toStr(new Date()); }
+
+function fmtShortDate(dateStr) {
+  if (!dateStr) return '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return months[m-1] + ' ' + d;
+}
 function fmtRange(s, e) {
   const sd = ymd(s), ed = ymd(e);
   if (s===e) return `${MON_SHORT[sd.getMonth()]} ${sd.getDate()}, ${sd.getFullYear()}`;
@@ -1870,8 +1866,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
 
     // Find events that overlap this week — including SLA extension via liveDate
     const weekEvents = visibleEvents.filter(ev => {
-      const effectiveEnd = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
-      return effectiveEnd >= weekStart && ev.start <= weekEnd;
+      return ev.end >= weekStart && ev.start <= weekEnd;
     });
 
     // Use global slot map — no per-week reassignment
@@ -1882,11 +1877,9 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       ? Math.max(...weekEvents.map(ev => weekSlotMap[ev.id]))
       : -1;
 
-    const cellHeight = 150;
+    const cellHeight = twoWeekView ? 340 : 185;
     weekEl.style.height = cellHeight + 'px';
     weekEl.style.minHeight = cellHeight + 'px';
-    weekEl.style.maxHeight = cellHeight + 'px';
-    weekEl.style.overflow = 'hidden';
 
     // Day cells
     weekDays.forEach((dayObj, di) => {
@@ -1982,11 +1975,56 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     // Offset dynamically: if any day this week has a holiday tag, start bars lower
     const BAR_H = getBAR_H(), BAR_GAP = getBAR_GAP(), DAY_NUM_H = getDAY_NUM_H();
     const barsTopOffset = DAY_NUM_H; // consistent for all weeks — holidays now inline with date
+    const MAX_VISIBLE_SLOTS = Math.floor((cellHeight - barsTopOffset - 16) / (BAR_H + BAR_GAP)); // overflow at 7+ when 6 fit
 
     const barsLayer = document.createElement('div');
     barsLayer.className = 'bars-layer';
     barsLayer.style.top = barsTopOffset + 'px';
     weekEl.appendChild(barsLayer);
+
+    // Overflow indicators — "+N more" per day column
+    if (false) weekDays.forEach((dayObj, di) => {
+      const dayEventsOverflow = weekEvents.filter(ev => {
+        const slot = weekSlotMap[ev.id] ?? 0;
+        const effEnd = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
+        const segStart = ev.start < dayObj.date ? dayObj.date : ev.start;
+        return slot >= MAX_VISIBLE_SLOTS && segStart <= dayObj.date && effEnd >= dayObj.date && ev.color !== 'charcoal';
+      });
+      if (dayEventsOverflow.length > 0) {
+        // Position indicator just below the last visible bar
+        const moreTop = barsTopOffset + MAX_VISIBLE_SLOTS * (BAR_H + BAR_GAP);
+        const moreEl = document.createElement('div');
+        moreEl.style.cssText = `
+          position:absolute;
+          left:calc(${di * (100/7)}% + 4px);
+          width:calc(${100/7}% - 8px);
+          top:${moreTop}px;
+          font-size:9px;font-weight:700;
+          color:var(--accent);
+          cursor:pointer;
+          text-align:left;
+          padding:2px 6px;
+          border-radius:3px;
+          background:rgba(46,109,164,0.08);
+          z-index:20;
+          pointer-events:all;
+          white-space:nowrap;
+          overflow:hidden;
+        `;
+        moreEl.textContent = `+${dayEventsOverflow.length} more`;
+        moreEl.title = dayEventsOverflow.map(ev => ev.name).join('\n');
+        moreEl.addEventListener('mousedown', e => {
+          e.stopPropagation();
+          e.preventDefault();
+          const allForDay = weekEvents.filter(ev => {
+            const effEnd = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
+            return ev.start <= dayObj.date && effEnd >= dayObj.date && ev.color !== 'charcoal';
+          });
+          showOverflowPopup(e, dayObj.date, allForDay);
+        });
+        barsLayer.appendChild(moreEl);
+      }
+    });
 
     // Compute cell width as percentage (7 equal cols)
     const colW = 100 / 7; // percent
@@ -2001,6 +2039,8 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
 
       const slot = weekSlotMap[ev.id];
       const top  = slot * (BAR_H + BAR_GAP);
+      // Hide bars that exceed the visible slot limit — shown via overflow popup instead
+      if (slot >= MAX_VISIBLE_SLOTS) return;
       const segStart = ev.start < weekStart ? weekStart : ev.start;
       const segEnd   = ev.end   > weekEnd   ? weekEnd   : ev.end;
 
@@ -2111,7 +2151,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         // When showSLA is off, live dates are hidden entirely (use toggle to show/hide)
         const caps = [];
         if (ev.deliveryDate) caps.push({ date: ev.deliveryDate, color: '#E65100', label: 'Delivery' });
-        if (showSLA && ev.liveDate && ev.liveDate <= ev.end) {
+        if (false && ev.liveDate && ev.liveDate <= ev.end) {
           caps.push({ date: ev.liveDate, color: '#B71C1C', label: ev.liveDateLabel || 'Live Date' });
         }
 
@@ -2205,8 +2245,8 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
           }
         }
 
-        // Live Date cap — toggles with SLA visibility
-        if (showSLA && ev.liveDate && ev.liveDate >= weekStart && ev.liveDate <= weekEnd) {
+        // Live Date cap removed from calendar
+        if (false && ev.liveDate && ev.liveDate >= weekStart && ev.liveDate <= weekEnd) {
           const liveDateCol = weekDays.findIndex(d => d.date === ev.liveDate);
           if (liveDateCol !== -1) {
             const liveCapEl = document.createElement('div');
@@ -2256,9 +2296,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
 
 // ── Render ────────────────────────────────────────────────────
 function render() {
-  document.getElementById('month-label').textContent = twoMonthView
-    ? `${MONTHS[currentMonth]} – ${MONTHS[currentMonth === 11 ? 0 : currentMonth+1]} ${currentYear}`
-    : `${MONTHS[currentMonth]} ${currentYear}`;
+  document.getElementById('month-label').textContent = `${MONTHS[currentMonth]} ${currentYear}`;
   const weeksEl = document.getElementById('cal-weeks');
   weeksEl.innerHTML = '';
 
@@ -2297,17 +2335,21 @@ function render() {
 
   // Collect all events visible in this month view
   const viewStart = weeks[0][0].date;
-  const viewEnd   = weeks[weeks.length-1][6].date;
+  // Extend viewEnd to end of fiscal year so all scrolled months show events
+  const fyEndY  = currentMonth >= 6 ? currentYear + 1 : currentYear;
+  const viewEnd = toStr(new Date(fyEndY, 6, 0)); // June 30 of fiscal year end
 
-  const visibleEvents = events
+  // ALL events in date range for slot assignment (ignores filter so slots stay stable)
+  const allRangeEvents = events
     .filter(ev => {
-      const effectiveEnd = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
-      return ev.start <= viewEnd && effectiveEnd >= viewStart;
+      return ev.start <= viewEnd && ev.end >= viewStart;
     })
-    .filter(ev => !activeFilter || ev.color === activeFilter)
     .sort((a,b) => daysBetween(b.start,b.end) - daysBetween(a.start,a.end));
 
-  // Assign slots GLOBALLY so each event keeps the same row across all weeks
+  // Filtered events for rendering (respects activeFilter)
+  const visibleEvents = allRangeEvents.filter(ev => !activeFilter || ev.color === activeFilter);
+
+  // Assign slots GLOBALLY from ALL events so slots never shift when filter changes
   const globalSlotMap = {}; // eventId -> slot (consistent across all weeks)
   const globalSlotOccupied = []; // slot -> array of [effectiveStart, effectiveEnd]
 
@@ -2321,15 +2363,18 @@ function render() {
     return ev.liveDate;
   }
 
-  // Sort by start date then duration so longer/earlier events claim lower slots first
-  [...visibleEvents].sort((a,b) => {
+  // Sort: group by workstream first, then by start date, OOO last
+  // Workstream order: Windows(green) → M365(blue2) → Intel(purple) → OOO(charcoal)
+  const wsOrder = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
+  [...allRangeEvents].sort((a,b) => {
+    const aOrd = wsOrder[a.color] ?? 50;
+    const bOrd = wsOrder[b.color] ?? 50;
+    if (aOrd !== bOrd) return aOrd - bOrd; // group by workstream
     if (a.start !== b.start) return a.start.localeCompare(b.start);
-    const aEnd = a.liveDate && a.liveDate > a.end ? a.liveDate : a.end;
-    const bEnd = b.liveDate && b.liveDate > b.end ? b.liveDate : b.end;
-    return bEnd.localeCompare(aEnd); // longer events first
+    return b.end.localeCompare(a.end); // longer jobs first within same start
   }).forEach(ev => {
     const effStart = ev.start;
-    const effEnd   = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
+    const effEnd   = ev.end; // use job end only — live date no longer extends slot
     let slot = 0;
     while (true) {
       const occupants = globalSlotOccupied[slot] || [];
@@ -2343,64 +2388,82 @@ function render() {
   });
 
   // Render each week row
-  renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap);
+  // 2-week view: show only 2 weeks containing/around today
+  let weeksToRender = weeks;
+  if (twoWeekView) {
+    const todayStr2 = todayStr();
+    // Find the week index containing today (or first week if today not in this month)
+    let todayWeekIdx = weeks.findIndex(w => w[0].date <= todayStr2 && w[6].date >= todayStr2);
+    if (todayWeekIdx === -1) todayWeekIdx = 0;
+    // Show that week and the next one
+    weeksToRender = weeks.slice(todayWeekIdx, todayWeekIdx + 2);
+    if (weeksToRender.length < 2 && todayWeekIdx > 0) {
+      weeksToRender = weeks.slice(Math.max(0, todayWeekIdx - 1), todayWeekIdx + 1);
+    }
+  }
 
-  // Second month if 2-month view is active
-  if (twoMonthView) {
-    const m2 = currentMonth === 11 ? 0 : currentMonth + 1;
-    const y2 = currentMonth === 11 ? currentYear + 1 : currentYear;
+  renderWeeks(weeksToRender, weeksEl, visibleEvents, globalSlotMap);
 
-    // Divider label
+  // Render remaining months of fiscal year (scrollable) — skip in 2-week view
+  if (!twoWeekView) {
+  const origMonth = currentMonth;
+  const origYear  = currentYear;
+  const fyEndMonth = 5; // June
+  const fyEndYear  = origMonth >= 6 ? origYear + 1 : origYear;
+
+  let rm = origMonth;
+  let ry = origYear;
+  let prevLastSunday = weeks[weeks.length - 1][0].date; // track to skip duplicate weeks
+
+  for (let i = 0; i < 12; i++) {
+    rm++; if (rm > 11) { rm = 0; ry++; }
+    if (ry > fyEndYear || (ry === fyEndYear && rm > fyEndMonth)) break;
+
+    // Month divider
     const divider = document.createElement('div');
-    divider.style.cssText = `
-      background: #13131A; color: #60609A; font-size: 11px; font-weight: 700;
-      letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 16px;
-      font-family: 'JetBrains Mono', monospace; border-top: 2px solid rgba(46,109,164,0.3);
-    `;
-    divider.textContent = `${MONTHS[m2]} ${y2}`;
+    divider.style.cssText = 'background:#13131A;color:#60609A;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:7px 16px;font-family:"JetBrains Mono",monospace;border-top:2px solid rgba(46,109,164,0.3);';
+    divider.textContent = `${MONTHS[rm]} ${ry}`;
     weeksEl.appendChild(divider);
 
-    // Save and temporarily switch month
-    const origMonth = currentMonth;
-    const origYear  = currentYear;
-    currentMonth = m2;
-    currentYear  = y2;
-
-    // Build second month weeks using same render logic
-    const firstDow2  = new Date(y2, m2, 1).getDay();
-    const daysInMon2 = new Date(y2, m2+1, 0).getDate();
-    const weeks2 = [];
-    let week2 = [];
-    const prevMonDays2 = new Date(y2, m2, 0).getDate();
-    for (let i = 0; i < firstDow2; i++) {
-      const pm = m2 === 0 ? 11 : m2-1;
-      const py = m2 === 0 ? y2-1 : y2;
-      const d = prevMonDays2 - firstDow2 + i + 1;
-      week2.push({ date: toStr(new Date(py, pm, d)), other: true });
+    // Build weeks for this month
+    const firstDowR  = new Date(ry, rm, 1).getDay();
+    const daysInMonR = new Date(ry, rm+1, 0).getDate();
+    const weeksR = [];
+    let weekR = [];
+    const prevMonDaysR = new Date(ry, rm, 0).getDate();
+    for (let j = 0; j < firstDowR; j++) {
+      const pm = rm === 0 ? 11 : rm-1;
+      const py = rm === 0 ? ry-1 : ry;
+      weekR.push({ date: toStr(new Date(py, pm, prevMonDaysR - firstDowR + j + 1)), other: true });
     }
-    for (let d = 1; d <= daysInMon2; d++) {
-      week2.push({ date: toStr(new Date(y2, m2, d)), other: false });
-      if (week2.length === 7) { weeks2.push(week2); week2 = []; }
+    for (let d = 1; d <= daysInMonR; d++) {
+      weekR.push({ date: toStr(new Date(ry, rm, d)), other: false });
+      if (weekR.length === 7) { weeksR.push(weekR); weekR = []; }
     }
-    if (week2.length > 0) {
-      const nm = m2 === 11 ? 0 : m2+1;
-      const ny = m2 === 11 ? y2+1 : y2;
+    if (weekR.length > 0) {
+      const nm = rm === 11 ? 0 : rm+1;
+      const ny = rm === 11 ? ry+1 : ry;
       let nd = 1;
-      while (week2.length < 7) week2.push({ date: toStr(new Date(ny, nm, nd++)), other: true });
-      weeks2.push(week2);
+      while (weekR.length < 7) weekR.push({ date: toStr(new Date(ny, nm, nd++)), other: true });
+      weeksR.push(weekR);
     }
 
-    // Remove first week of month 2 if it overlaps with last week of month 1
-    const lastWeek1End = weeks[weeks.length - 1][6].date;
-    const filteredWeeks2 = weeks2.filter(w => w[0].date > lastWeek1End);
+    // Skip first week if it starts before the 1st of this month (already shown)
+    const filteredR = weeksR.filter(w => w[0].date > prevLastSunday);
+    if (filteredR.length > 0) {
+      prevLastSunday = filteredR[filteredR.length - 1][0].date;
 
-    // Render second month using the same renderWeeks logic
-    renderWeeks(filteredWeeks2, weeksEl, visibleEvents, globalSlotMap);
-
-    // Restore
-    currentMonth = origMonth;
-    currentYear  = origYear;
+      // Temporarily set month for renderWeeks context
+      currentMonth = rm;
+      currentYear  = ry;
+      renderWeeks(filteredR, weeksEl, visibleEvents, globalSlotMap);
+    }
   }
+
+  // Restore
+  currentMonth = origMonth;
+  currentYear  = origYear;
+  } // end if (!twoWeekView) for additional months
 
   renderStatsBar();
 }
@@ -2449,7 +2512,7 @@ function renderStatsBar() {
 // ── Daily Standup panel ─────────────────────────────────────────
 let standupFilter = null; // job color key, null = "all active", 'delivering' = delivering this month
 let showSLA = localStorage.getItem('prodcal2_showSLA') !== 'false'; // default on
-let twoMonthView = localStorage.getItem('prodcal2_twomonth') === 'true'; // default off
+let twoWeekView = localStorage.getItem('prodcal2_twoweek') === 'true';
 
 const STATUS_LABELS = {
   'production': 'In Production',
@@ -3157,7 +3220,7 @@ function renderStandupBody() {
     // ── Status — most recent PM daily log entry ────────────────
     const pmEntries = loadPmData ? loadPmData(ev.id) : [];
     if (pmEntries.length > 0) {
-      const latest = pmEntries[0]; // newest first
+      const latest = pmEntries[0];
       const statusSection = document.createElement('div');
       statusSection.style.cssText = 'margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed rgba(200,90,10,0.2);';
       const statusLabel = document.createElement('div');
@@ -3178,9 +3241,25 @@ function renderStandupBody() {
       internalWrap.appendChild(statusSection);
     }
 
+    // ── Creative Handoff — from PM field ───────────────────────
+    const handoffText = ev.creativeHandoff || localStorage.getItem('prodcal2_pm_handoff_' + ev.id) || '';
+    if (handoffText) {
+      const handoffSection = document.createElement('div');
+      handoffSection.style.cssText = 'margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed rgba(200,90,10,0.2);';
+      const handoffLabel = document.createElement('div');
+      handoffLabel.className = 'standup-internal-label';
+      handoffLabel.textContent = 'Creative Handoff';
+      const handoffContent = document.createElement('div');
+      handoffContent.style.cssText = 'font-size:12px;color:var(--text);line-height:1.5;margin-top:4px;white-space:pre-wrap;';
+      handoffContent.textContent = handoffText;
+      handoffSection.appendChild(handoffLabel);
+      handoffSection.appendChild(handoffContent);
+      internalWrap.appendChild(handoffSection);
+    }
+
     const internalLabel = document.createElement('div');
     internalLabel.className = 'standup-internal-label';
-    internalLabel.textContent = 'Internal Notes';
+    internalLabel.textContent = 'Notes';
     internalWrap.appendChild(internalLabel);
 
     // Normalise internalNotes to array (supports legacy string format)
@@ -3533,9 +3612,9 @@ function openEdit(id) {
   document.getElementById('ev-status').value        = ev.status || '';
   document.getElementById('ev-delivery-date').value = ev.deliveryDate || '';
   document.getElementById('ev-live-date').value      = ev.liveDate || '';
-  document.getElementById('ev-sla-weekdays-only').checked = ev.slaWeekdaysOnly || false;
-  document.getElementById('ev-sla-skip-holidays').checked = ev.slaSkipHolidays || false;
-  document.getElementById('sla-options-row').style.display = ev.liveDate ? 'block' : 'none';
+  // sla removed
+  // sla removed
+  // sla-options-row removed
   document.getElementById('ev-notes').value = ev.notes || '';
   document.getElementById('ev-weekdays-only').checked = ev.weekdaysOnly || false;
   document.getElementById('ev-skip-holidays').checked = ev.skipHolidays || false;
@@ -3563,9 +3642,9 @@ function openAdd(date) {
   document.getElementById('ev-status').value        = '';
   document.getElementById('ev-delivery-date').value = '';
   document.getElementById('ev-live-date').value      = '';
-  document.getElementById('ev-sla-weekdays-only').checked = false;
-  document.getElementById('ev-sla-skip-holidays').checked = false;
-  document.getElementById('sla-options-row').style.display = 'none';
+  // sla removed
+  // sla removed
+  // sla-options-row removed
   document.getElementById('ev-notes').value = '';
   document.getElementById('ev-weekdays-only').checked = false;
   document.getElementById('ev-skip-holidays').checked = false;
@@ -3604,9 +3683,7 @@ document.getElementById('push-back-btn').addEventListener('click', () => {
   shiftDateInputs(-n);
 });
 
-document.getElementById('ev-live-date').addEventListener('change', function() {
-  document.getElementById('sla-options-row').style.display = this.value ? 'block' : 'none';
-});
+// sla-options-row removed
 
 document.getElementById('modal-save').addEventListener('click', () => {
   const name         = document.getElementById('ev-name').value.trim();
@@ -3621,8 +3698,8 @@ document.getElementById('modal-save').addEventListener('click', () => {
   const status       = document.getElementById('ev-status').value;
   const deliveryDate = document.getElementById('ev-delivery-date').value;
   const liveDate     = document.getElementById('ev-live-date').value;
-  const slaWeekdaysOnly = document.getElementById('ev-sla-weekdays-only').checked;
-  const slaSkipHolidays = document.getElementById('ev-sla-skip-holidays').checked;
+  const slaWeekdaysOnly = false;
+  const slaSkipHolidays = false;
   const notes        = document.getElementById('ev-notes').value.trim();
   const weekdaysOnly = document.getElementById('ev-weekdays-only').checked;
   const skipHolidays = document.getElementById('ev-skip-holidays').checked;
@@ -3800,21 +3877,21 @@ updateLegendBar();
 render();
 loadData().then(() => { render(); startPolling(); });
 
-// ── 2-month view toggle ───────────────────────────────────────
-function applyTwoMonthToggle() {
-  const btn = document.getElementById('two-month-btn');
+// ── 2-week view toggle ────────────────────────────────────────
+function applyTwoWeekToggle() {
+  const btn = document.getElementById('two-week-btn');
   if (!btn) return;
-  btn.style.background = twoMonthView ? 'rgba(46,109,164,0.2)' : '';
-  btn.style.borderColor = twoMonthView ? 'var(--accent)' : '';
-  btn.style.color = twoMonthView ? '#90B8D8' : '';
+  btn.style.background = twoWeekView ? 'rgba(46,109,164,0.2)' : '';
+  btn.style.borderColor = twoWeekView ? 'var(--accent)' : '';
+  btn.style.color = twoWeekView ? '#90B8D8' : '';
 }
-document.getElementById('two-month-btn').addEventListener('click', () => {
-  twoMonthView = !twoMonthView;
-  localStorage.setItem('prodcal2_twomonth', twoMonthView ? 'true' : 'false');
-  applyTwoMonthToggle();
+document.getElementById('two-week-btn').addEventListener('click', () => {
+  twoWeekView = !twoWeekView;
+  localStorage.setItem('prodcal2_twoweek', twoWeekView ? 'true' : 'false');
+  applyTwoWeekToggle();
   render();
 });
-applyTwoMonthToggle();
+applyTwoWeekToggle();
 
 // ── SLA toggle ────────────────────────────────────────────────
 function applySLAToggle() {
@@ -4511,8 +4588,44 @@ function renderPMJob(ev,hex,group,statusCycle){
   const nameEl=document.createElement('div');nameEl.className='pm-job-name';nameEl.title=ev.name;
   nameEl.textContent=ev.name+(ev.jobNumber?` [${ev.jobNumber}]`:'');
   const metaEl=document.createElement('div');metaEl.className='pm-job-meta';
-  metaEl.textContent=fmtRange(ev.start,ev.end)+([ev.producer,ev.editor].filter(Boolean).length?' · '+[ev.producer,ev.editor].filter(Boolean).join(' · '):'');
-  titleWrap.appendChild(nameEl);titleWrap.appendChild(metaEl);
+  metaEl.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:2px;';
+  const dateSpan = document.createElement('span');
+  dateSpan.textContent = fmtRange(ev.start, ev.end);
+  metaEl.appendChild(dateSpan);
+
+  // Live date shown after dates if set
+  if (ev.liveDate) {
+    const liveSep = document.createElement('span');
+    liveSep.style.cssText = 'color:var(--text-faint);font-size:10px;';
+    liveSep.textContent = '·';
+    metaEl.appendChild(liveSep);
+    const liveChip = document.createElement('span');
+    liveChip.style.cssText = 'font-size:11px;color:#B71C1C;';
+    liveChip.textContent = 'Live ' + fmtShortDate(ev.liveDate);
+    metaEl.appendChild(liveChip);
+  }
+
+  // Team chips inline with date in collapsed view
+  const teamPreviewData = (() => { try { return JSON.parse(localStorage.getItem('prodcal2_pm_team_'+ev.id)||'{}'); } catch(e) { return {}; } })();
+  const ROLE_COLORS_PREVIEW = { PM:'#7B2FBE', Producer:'#1565C0', Editor:'#2E7D32', Animator:'#E65100', AE:'#C62828', Accounts:'#0891B2' };
+  let hasTeam = false;
+  ['Producer','Editor','Animator','AE','Accounts','PM'].forEach(role => {
+    (teamPreviewData[role]||[]).forEach(name => {
+      if (!hasTeam) { const sep = document.createElement('span'); sep.style.cssText='color:var(--text-faint);font-size:10px;'; sep.textContent='·'; metaEl.appendChild(sep); }
+      hasTeam = true;
+      const c = document.createElement('span');
+      const col = ROLE_COLORS_PREVIEW[role];
+      c.style.cssText = `background:${col}18;border:1px solid ${col}44;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:600;color:${col};`;
+      c.textContent = name;
+      metaEl.appendChild(c);
+    });
+  });
+
+  // teamPreview div kept for rerenderTeam to update
+  const teamPreview = metaEl;
+
+  titleWrap.appendChild(nameEl);
+  titleWrap.appendChild(metaEl);
   const badge=document.createElement('span');badge.className=`pm-job-status ${ev.status||'none'}`;
   badge.textContent=ev.status?(STATUS_LABELS[ev.status]||ev.status):'+ Status';
   if(!ev.status) badge.style.cssText='background:transparent;border:1px dashed var(--border-strong);color:var(--text-faint);font-style:italic;';
@@ -4524,6 +4637,36 @@ function renderPMJob(ev,hex,group,statusCycle){
 
   const bodyDiv=document.createElement('div');bodyDiv.className='pm-job-body';
   const inner=document.createElement('div');inner.className='pm-job-body-inner';
+
+  // ── Creative Handoff
+  const PM_HANDOFF_KEY = 'prodcal2_pm_handoff_';
+  const handoffSec = document.createElement('div');
+  const handoffLbl = document.createElement('div');
+  handoffLbl.className = 'pm-section-label';
+  handoffLbl.textContent = 'Creative Handoff';
+  handoffSec.appendChild(handoffLbl);
+
+  const handoffVal = localStorage.getItem(PM_HANDOFF_KEY + ev.id) || '';
+  if (!isLocked) {
+    const handoffTa = document.createElement('textarea');
+    handoffTa.style.cssText = 'width:100%;border:1px solid var(--border-strong);border-radius:6px;padding:8px 10px;font-size:12px;font-family:\'Segoe UI\',sans-serif;resize:vertical;outline:none;background:var(--bg);color:var(--text);line-height:1.5;min-height:60px;box-sizing:border-box;';
+    handoffTa.placeholder = 'What creative assets are expected from Droga for localization...';
+    handoffTa.value = handoffVal;
+    handoffTa.addEventListener('click', e => e.stopPropagation());
+    handoffTa.addEventListener('change', () => {
+      localStorage.setItem(PM_HANDOFF_KEY + ev.id, handoffTa.value.trim());
+      // Store in ev for standup pickup
+      ev.creativeHandoff = handoffTa.value.trim();
+      saveData();
+    });
+    handoffSec.appendChild(handoffTa);
+  } else if (handoffVal) {
+    const handoffText = document.createElement('div');
+    handoffText.style.cssText = 'font-size:12px;color:var(--text);line-height:1.5;padding:4px 0;';
+    handoffText.textContent = handoffVal;
+    handoffSec.appendChild(handoffText);
+  }
+  inner.appendChild(handoffSec);
 
   // ── Daily Status Log
   const statSec=document.createElement('div');
@@ -4538,7 +4681,7 @@ function renderPMJob(ev,hex,group,statusCycle){
       const ds=document.createElement('span');ds.className='pm-status-date';ds.textContent=entry.date;
       const ts=document.createElement('span');ts.className='pm-status-text';ts.textContent=entry.text;
       const dl=document.createElement('button');dl.className='pm-status-del';dl.textContent='×';
-      dl.addEventListener('click',e=>{e.stopPropagation();const u=loadPmData(ev.id);u.splice(i,1);savePmStatus(ev.id,u);ev.internalNotesList=u.map(e2=>`[${e2.date}] ${e2.text}`);saveData();rerenderLog();});
+      dl.addEventListener('click',e=>{e.stopPropagation();const u=loadPmData(ev.id);u.splice(i,1);savePmStatus(ev.id,u);saveData();rerenderLog();});
       if(!isLocked) row.appendChild(dl);row.appendChild(ds);row.appendChild(ts);
       logList.appendChild(row);
     });
@@ -4548,11 +4691,45 @@ function renderPMJob(ev,hex,group,statusCycle){
       const di=document.createElement('input');di.className='pm-status-date-input';di.value=today2;di.addEventListener('click',e=>e.stopPropagation());
       const ti=document.createElement('textarea');ti.className='pm-status-text-input';ti.rows=2;ti.placeholder='Add status update, note or link...';ti.addEventListener('click',e=>e.stopPropagation());
       const ab=document.createElement('button');ab.className='pm-status-add-btn';ab.textContent='+ Add';
-      ab.addEventListener('click',e=>{e.stopPropagation();const text=ti.value.trim();if(!text)return;const entries=loadPmData(ev.id);entries.unshift({date:di.value.trim()||today2,text});savePmStatus(ev.id,entries);ev.internalNotesList=entries.map(e2=>`[${e2.date}] ${e2.text}`);saveData();ti.value='';rerenderLog();});
+      ab.addEventListener('click',e=>{e.stopPropagation();const text=ti.value.trim();if(!text)return;const entries=loadPmData(ev.id);entries.unshift({date:di.value.trim()||today2,text});savePmStatus(ev.id,entries);saveData();ti.value='';rerenderLog();});
       ir.appendChild(di);ir.appendChild(ti);ir.appendChild(ab);logList.appendChild(ir);
     }
   }
   rerenderLog();statSec.appendChild(logList);inner.appendChild(statSec);
+
+  // ── Live Date ─────────────────────────────────────────────────
+  const liveDateSec = document.createElement('div');
+  const liveDateLbl = document.createElement('div');
+  liveDateLbl.className = 'pm-section-label';
+  liveDateLbl.textContent = 'Live Date';
+  liveDateSec.appendChild(liveDateLbl);
+  const liveDateRow = document.createElement('div');
+  liveDateRow.style.cssText = 'display:flex;align-items:center;gap:10px;';
+  const liveDateInput = document.createElement('input');
+  liveDateInput.type = 'date';
+  liveDateInput.className = 'pm-doc-input';
+  liveDateInput.style.maxWidth = '160px';
+  liveDateInput.value = ev.liveDate || '';
+  liveDateInput.addEventListener('click', e => e.stopPropagation());
+  liveDateInput.addEventListener('change', () => {
+    ev.liveDate = liveDateInput.value || '';
+    saveData();
+  });
+  liveDateRow.appendChild(liveDateInput);
+  if (ev.liveDate) {
+    const liveDateDisplay = document.createElement('span');
+    liveDateDisplay.style.cssText = 'font-size:11px;color:#B71C1C;font-weight:700;';
+    liveDateDisplay.textContent = '🔴 ' + ev.liveDate;
+    liveDateRow.appendChild(liveDateDisplay);
+  }
+  if (!isLocked) liveDateSec.appendChild(liveDateRow);
+  else if (ev.liveDate) {
+    const d = document.createElement('div');
+    d.style.cssText = 'font-size:12px;color:#B71C1C;font-weight:700;';
+    d.textContent = ev.liveDate;
+    liveDateSec.appendChild(d);
+  }
+  inner.appendChild(liveDateSec);
 
   // ── Documents — Brief, Naming Doc, Mission Control
   const docSec=document.createElement('div');
@@ -4568,6 +4745,136 @@ function renderPMJob(ev,hex,group,statusCycle){
     docSec.appendChild(row);
   });
   inner.appendChild(docSec);
+
+  // ── Team Members ──────────────────────────────────────────────
+  const TEAM_KEY = 'prodcal2_pm_team_';
+  const TEAM_ROLES = {
+    Producer:  ['Mike','Hackett','Jake'],
+    Editor:    ['Emmett','Zach','Dana','Diogo','Louie','Andre','Troy'],
+    Animator:  ['Andy','Diego','Zach','Dana'],
+    AE:        ['Troy','Alexa'],
+    Accounts:  [],
+    PM:        ['Kara','Caitlin','Maureen']
+  };
+  const ROLE_COLORS = {
+    PM:       '#7B2FBE',
+    Producer: '#1565C0',
+    Editor:   '#2E7D32',
+    Animator: '#E65100',
+    AE:       '#C62828',
+    Accounts: '#0891B2'
+  };
+  const teamSec = document.createElement('div');
+  const teamLbl = document.createElement('div');
+  teamLbl.className = 'pm-section-label';
+  teamLbl.textContent = 'Team';
+  teamSec.appendChild(teamLbl);
+
+  const teamData = (() => { try { return JSON.parse(localStorage.getItem(TEAM_KEY+ev.id)||'{}'); } catch(e) { return {}; } })();
+  const saveTeam = () => {
+    localStorage.setItem(TEAM_KEY+ev.id, JSON.stringify(teamData));
+    ev.producer = (teamData.Producer||[]).join(', ');
+    ev.editor   = (teamData.Editor||[]).join(', ');
+    saveData();
+  };
+
+  // Re-render just the team section in place (no full renderPM)
+  function rerenderTeam() {
+    // Refresh header preview — rebuild metaEl content
+    metaEl.innerHTML = '';
+    const ds = document.createElement('span');
+    ds.textContent = fmtRange(ev.start, ev.end);
+    metaEl.appendChild(ds);
+    if (ev.liveDate) {
+      const ls = document.createElement('span'); ls.style.cssText='color:var(--text-faint);font-size:10px;'; ls.textContent='·'; metaEl.appendChild(ls);
+      const lc = document.createElement('span'); lc.style.cssText='font-size:11px;color:#B71C1C;'; lc.textContent='Live '+fmtShortDate(ev.liveDate); metaEl.appendChild(lc);
+    }
+    let hasT = false;
+    ['Producer','Editor','Animator','AE','Accounts','PM'].forEach(role => {
+      (teamData[role]||[]).forEach(name => {
+        if (!hasT) { const sep = document.createElement('span'); sep.style.cssText='color:var(--text-faint);font-size:10px;'; sep.textContent='·'; metaEl.appendChild(sep); }
+        hasT = true;
+        const c = document.createElement('span');
+        const col = ROLE_COLORS[role];
+        c.style.cssText = `background:${col}18;border:1px solid ${col}44;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:600;color:${col};`;
+        c.textContent = name;
+        metaEl.appendChild(c);
+      });
+    });
+
+    // Rebuild role rows in expanded section
+    teamSec.querySelectorAll('.team-role-row').forEach(r => r.remove());
+    teamSec.querySelectorAll('.team-role-grid').forEach(r => r.remove());
+
+    Object.entries(TEAM_ROLES).forEach(([role, presets]) => {
+      const row = document.createElement('div');
+      row.className = 'pm-doc-row team-role-row';
+      row.style.cssText = 'align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:2px;';
+
+      const lbl = document.createElement('span');
+      lbl.className = 'pm-doc-label';
+      lbl.style.color = ROLE_COLORS[role] || 'var(--text-muted)';
+      lbl.style.fontWeight = '700';
+      lbl.textContent = role + ':';
+      row.appendChild(lbl);
+
+      const rightCol = document.createElement('div');
+      rightCol.style.cssText = 'flex:1;display:flex;flex-wrap:wrap;gap:4px;align-items:center;';
+
+      const selected = teamData[role] || [];
+
+      selected.forEach((name, i) => {
+        const roleColor = ROLE_COLORS[role] || '#444';
+        const chip = document.createElement('span');
+        chip.style.cssText = `display:inline-flex;align-items:center;gap:3px;background:${roleColor}18;border:1px solid ${roleColor}44;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;color:${roleColor};`;
+        chip.textContent = name;
+        if (!isLocked) {
+          const x = document.createElement('button');
+          x.style.cssText = `background:none;border:none;cursor:pointer;color:${roleColor}88;font-size:13px;padding:0 1px;line-height:1;`;
+          x.textContent = '×';
+          x.addEventListener('click', e => { e.stopPropagation(); selected.splice(i,1); teamData[role]=selected; saveTeam(); rerenderTeam(); });
+          chip.appendChild(x);
+        }
+        rightCol.appendChild(chip);
+      });
+
+      if (!isLocked) {
+        const sel = document.createElement('select');
+        sel.style.cssText = 'font-size:11px;border:1px solid var(--border-strong);border-radius:5px;padding:3px 6px;background:var(--bg);color:var(--text);outline:none;max-width:140px;';
+        const placeholder = document.createElement('option');
+        placeholder.value = ''; placeholder.textContent = '+ Add ' + role;
+        sel.appendChild(placeholder);
+        presets.filter(p => !selected.includes(p)).forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p; opt.textContent = p;
+          sel.appendChild(opt);
+        });
+        const customOpt = document.createElement('option');
+        customOpt.value = '__custom__'; customOpt.textContent = 'Other (type name)…';
+        sel.appendChild(customOpt);
+        sel.addEventListener('change', e => {
+          e.stopPropagation();
+          let val = sel.value;
+          if (!val) return;
+          if (val === '__custom__') {
+            val = prompt(`Enter ${role} name:`);
+            if (!val || !val.trim()) { sel.value = ''; return; }
+            val = val.trim();
+          }
+          if (!selected.includes(val)) { selected.push(val); teamData[role]=selected; saveTeam(); }
+          sel.value = '';
+          rerenderTeam();
+        });
+        sel.addEventListener('click', e => e.stopPropagation());
+        rightCol.appendChild(sel);
+      }
+
+      row.appendChild(rightCol);
+      teamSec.appendChild(row);
+    });
+  }
+  rerenderTeam();
+  inner.appendChild(teamSec);
   bodyDiv.appendChild(inner);jobEl.appendChild(bodyDiv);group.appendChild(jobEl);
 }
 
@@ -4576,6 +4883,60 @@ function closePM(){pmOpen=false;document.getElementById('pm-panel').classList.re
 document.getElementById('pm-toggle-btn').addEventListener('click',()=>pmOpen?closePM():openPM());
 document.getElementById('pm-close-btn').addEventListener('click',closePM);
 document.getElementById('pm-overlay').addEventListener('click',closePM);
+
+// ── Overflow popup ────────────────────────────────────────────
+const overflowPopup = document.getElementById('overflow-popup');
+function showOverflowPopup(e, date, evs) {
+  overflowPopup.innerHTML = '';
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-faint);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;font-family:"JetBrains Mono",monospace;';
+  title.textContent = fmtRange(date, date);
+  overflowPopup.appendChild(title);
+  const uniqueEvs = evs.filter((ev,i,a) => a.findIndex(x=>x.id===ev.id)===i)
+    .sort((a,b) => (globalSlotMap[a.id]??0) - (globalSlotMap[b.id]??0));
+  uniqueEvs.forEach(ev => {
+    const job = getJobByKey(ev.color);
+    const hex = ev.colorOverride || (job.hex.startsWith('rgba') ? '#1565C0' : job.hex);
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:0;border-radius:7px;overflow:hidden;cursor:pointer;margin-bottom:3px;box-shadow:0 1px 3px rgba(0,0,0,0.08);';
+    row.addEventListener('click', () => { hideOverflowPopup(); if (!isLocked) openEdit(ev.id); });
+
+    // Color bar on left matching job bar
+    const colorBar = document.createElement('div');
+    colorBar.style.cssText = `width:8px;flex-shrink:0;background:${hex};align-self:stretch;`;
+    row.appendChild(colorBar);
+
+    const content = document.createElement('div');
+    content.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;flex:1;background:#fff;transition:background 0.1s;';
+    row.addEventListener('mouseenter', () => content.style.background='#F4F4F8');
+    row.addEventListener('mouseleave', () => content.style.background='#fff');
+
+    const name = document.createElement('div');
+    name.style.cssText = 'font-size:12px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    name.textContent = ev.name;
+
+    content.appendChild(name);
+    if (ev.status) {
+      const status = document.createElement('div');
+      status.className = `standup-job-status ${ev.status}`;
+      status.textContent = STATUS_LABELS[ev.status]||ev.status;
+      content.appendChild(status);
+    }
+    row.appendChild(content);
+    overflowPopup.appendChild(row);
+  });
+  // Position near click
+  overflowPopup.style.display = 'block';
+  const rect = overflowPopup.getBoundingClientRect();
+  let left = e.clientX + 8;
+  let top  = e.clientY + 8;
+  if (left + 320 > window.innerWidth) left = e.clientX - 320;
+  if (top + rect.height > window.innerHeight) top = e.clientY - rect.height - 8;
+  overflowPopup.style.left = left + 'px';
+  overflowPopup.style.top  = top  + 'px';
+}
+function hideOverflowPopup() { overflowPopup.style.display = 'none'; }
+document.addEventListener('click', e => { if (!overflowPopup.contains(e.target)) hideOverflowPopup(); });
 
 // ── Dark mode ─────────────────────────────────────────────────
 const DARK_KEY = 'prodcal2_darkmode';
