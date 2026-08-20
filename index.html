@@ -3160,6 +3160,7 @@ function renderStandupBody() {
         if (state.done)      li.classList.add('wbs-done');
         if (state.highlight) li.classList.add('wbs-highlight');
 
+
         const text = document.createElement('span');
         text.className = 'wbs-text';
         text.textContent = line;
@@ -4621,8 +4622,7 @@ function renderPMJob(ev,hex,group,statusCycle){
     });
   });
 
-  // teamPreview div kept for rerenderTeam to update
-  const teamPreview = metaEl;
+
 
   titleWrap.appendChild(nameEl);
   titleWrap.appendChild(metaEl);
@@ -4746,135 +4746,7 @@ function renderPMJob(ev,hex,group,statusCycle){
   });
   inner.appendChild(docSec);
 
-  // ── Team Members ──────────────────────────────────────────────
-  const TEAM_KEY = 'prodcal2_pm_team_';
-  const TEAM_ROLES = {
-    Producer:  ['Mike','Hackett','Jake'],
-    Editor:    ['Emmett','Zach','Dana','Diogo','Louie','Andre','Troy'],
-    Animator:  ['Andy','Diego','Zach','Dana'],
-    AE:        ['Troy','Alexa'],
-    Accounts:  [],
-    PM:        ['Kara','Caitlin','Maureen']
-  };
-  const ROLE_COLORS = {
-    PM:       '#7B2FBE',
-    Producer: '#1565C0',
-    Editor:   '#2E7D32',
-    Animator: '#E65100',
-    AE:       '#C62828',
-    Accounts: '#0891B2'
-  };
-  const teamSec = document.createElement('div');
-  const teamLbl = document.createElement('div');
-  teamLbl.className = 'pm-section-label';
-  teamLbl.textContent = 'Team';
-  teamSec.appendChild(teamLbl);
 
-  const teamData = (() => { try { return JSON.parse(localStorage.getItem(TEAM_KEY+ev.id)||'{}'); } catch(e) { return {}; } })();
-  const saveTeam = () => {
-    localStorage.setItem(TEAM_KEY+ev.id, JSON.stringify(teamData));
-    ev.producer = (teamData.Producer||[]).join(', ');
-    ev.editor   = (teamData.Editor||[]).join(', ');
-    saveData();
-  };
-
-  // Re-render just the team section in place (no full renderPM)
-  function rerenderTeam() {
-    // Refresh header preview — rebuild metaEl content
-    metaEl.innerHTML = '';
-    const ds = document.createElement('span');
-    ds.textContent = fmtRange(ev.start, ev.end);
-    metaEl.appendChild(ds);
-    if (ev.liveDate) {
-      const ls = document.createElement('span'); ls.style.cssText='color:var(--text-faint);font-size:10px;'; ls.textContent='·'; metaEl.appendChild(ls);
-      const lc = document.createElement('span'); lc.style.cssText='font-size:11px;color:#B71C1C;'; lc.textContent='Live '+fmtShortDate(ev.liveDate); metaEl.appendChild(lc);
-    }
-    let hasT = false;
-    ['Producer','Editor','Animator','AE','Accounts','PM'].forEach(role => {
-      (teamData[role]||[]).forEach(name => {
-        if (!hasT) { const sep = document.createElement('span'); sep.style.cssText='color:var(--text-faint);font-size:10px;'; sep.textContent='·'; metaEl.appendChild(sep); }
-        hasT = true;
-        const c = document.createElement('span');
-        const col = ROLE_COLORS[role];
-        c.style.cssText = `background:${col}18;border:1px solid ${col}44;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:600;color:${col};`;
-        c.textContent = name;
-        metaEl.appendChild(c);
-      });
-    });
-
-    // Rebuild role rows in expanded section
-    teamSec.querySelectorAll('.team-role-row').forEach(r => r.remove());
-    teamSec.querySelectorAll('.team-role-grid').forEach(r => r.remove());
-
-    Object.entries(TEAM_ROLES).forEach(([role, presets]) => {
-      const row = document.createElement('div');
-      row.className = 'pm-doc-row team-role-row';
-      row.style.cssText = 'align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:2px;';
-
-      const lbl = document.createElement('span');
-      lbl.className = 'pm-doc-label';
-      lbl.style.color = ROLE_COLORS[role] || 'var(--text-muted)';
-      lbl.style.fontWeight = '700';
-      lbl.textContent = role + ':';
-      row.appendChild(lbl);
-
-      const rightCol = document.createElement('div');
-      rightCol.style.cssText = 'flex:1;display:flex;flex-wrap:wrap;gap:4px;align-items:center;';
-
-      const selected = teamData[role] || [];
-
-      selected.forEach((name, i) => {
-        const roleColor = ROLE_COLORS[role] || '#444';
-        const chip = document.createElement('span');
-        chip.style.cssText = `display:inline-flex;align-items:center;gap:3px;background:${roleColor}18;border:1px solid ${roleColor}44;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;color:${roleColor};`;
-        chip.textContent = name;
-        if (!isLocked) {
-          const x = document.createElement('button');
-          x.style.cssText = `background:none;border:none;cursor:pointer;color:${roleColor}88;font-size:13px;padding:0 1px;line-height:1;`;
-          x.textContent = '×';
-          x.addEventListener('click', e => { e.stopPropagation(); selected.splice(i,1); teamData[role]=selected; saveTeam(); rerenderTeam(); });
-          chip.appendChild(x);
-        }
-        rightCol.appendChild(chip);
-      });
-
-      if (!isLocked) {
-        const sel = document.createElement('select');
-        sel.style.cssText = 'font-size:11px;border:1px solid var(--border-strong);border-radius:5px;padding:3px 6px;background:var(--bg);color:var(--text);outline:none;max-width:140px;';
-        const placeholder = document.createElement('option');
-        placeholder.value = ''; placeholder.textContent = '+ Add ' + role;
-        sel.appendChild(placeholder);
-        presets.filter(p => !selected.includes(p)).forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p; opt.textContent = p;
-          sel.appendChild(opt);
-        });
-        const customOpt = document.createElement('option');
-        customOpt.value = '__custom__'; customOpt.textContent = 'Other (type name)…';
-        sel.appendChild(customOpt);
-        sel.addEventListener('change', e => {
-          e.stopPropagation();
-          let val = sel.value;
-          if (!val) return;
-          if (val === '__custom__') {
-            val = prompt(`Enter ${role} name:`);
-            if (!val || !val.trim()) { sel.value = ''; return; }
-            val = val.trim();
-          }
-          if (!selected.includes(val)) { selected.push(val); teamData[role]=selected; saveTeam(); }
-          sel.value = '';
-          rerenderTeam();
-        });
-        sel.addEventListener('click', e => e.stopPropagation());
-        rightCol.appendChild(sel);
-      }
-
-      row.appendChild(rightCol);
-      teamSec.appendChild(row);
-    });
-  }
-  rerenderTeam();
-  inner.appendChild(teamSec);
   bodyDiv.appendChild(inner);jobEl.appendChild(bodyDiv);group.appendChild(jobEl);
 }
 
