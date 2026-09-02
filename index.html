@@ -1992,11 +1992,25 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         const allForDay = weekEvents.filter(ev =>
           ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal'
         );
-        // Store on cell as data attributes — fixed-position buttons rendered after DOM settles
+        // Add +N more button to the numRow (top of cell, not clipped by overflow:hidden on bars)
         const cellEl = weekEl.querySelectorAll('.day-cell')[di];
         if (cellEl) {
-          cellEl.dataset.overflow = allForDay.length;
-          cellEl.dataset.overflowEvents = JSON.stringify(allForDay.map(ev => ev.id));
+          const nr = cellEl.querySelector('div'); // numRow is first div
+          if (nr) {
+            const moreBtn = document.createElement('button');
+            moreBtn.textContent = `+${dayEventsOverflow.length} more`;
+            moreBtn.style.cssText = `
+              margin-left:auto;font-size:9px;font-weight:700;
+              color:var(--accent);background:rgba(46,109,164,0.1);
+              border:none;border-radius:3px;padding:1px 5px;
+              cursor:pointer;white-space:nowrap;flex-shrink:0;
+            `;
+            moreBtn.addEventListener('click', e => {
+              e.stopPropagation();
+              showOverflowPopup(e, dayObj.date, allForDay);
+            });
+            nr.appendChild(moreBtn);
+          }
         }
       }
     });
@@ -2274,7 +2288,6 @@ function render() {
   document.getElementById('month-label').textContent = `${MONTHS[currentMonth]} ${currentYear}`;
   const weeksEl = document.getElementById('cal-weeks');
   weeksEl.innerHTML = '';
-  document.querySelectorAll('.overflow-more-btn').forEach(b => b.remove());
 
   const firstDow   = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun
   const daysInMon  = new Date(currentYear, currentMonth+1, 0).getDate();
@@ -2443,39 +2456,6 @@ function render() {
 
   renderStatsBar();
 
-  // Render +N more buttons as fixed-position overlays after DOM settles
-  requestAnimationFrame(() => {
-    document.querySelectorAll('.overflow-more-btn').forEach(b => b.remove());
-    document.querySelectorAll('.day-cell[data-overflow]').forEach(cell => {
-      const rect = cell.getBoundingClientRect();
-      const date = cell.dataset.date;
-      const count = cell.dataset.overflow;
-      const btn = document.createElement('button');
-      btn.className = 'overflow-more-btn';
-      btn.textContent = `+${count} more`;
-      btn.style.cssText = `
-        position:fixed;
-        left:${rect.left + 4}px;
-        top:${rect.bottom - 20}px;
-        width:${rect.width - 8}px;
-        height:18px;
-        font-size:9px;font-weight:700;
-        color:var(--accent);
-        background:rgba(46,109,164,0.1);
-        border:none;border-radius:3px;
-        cursor:pointer;z-index:50;
-        pointer-events:all;
-        font-family:'Segoe UI',sans-serif;
-      `;
-      btn._date = date;
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const allEvs = JSON.parse(cell.dataset.overflowEvents || '[]');
-        showOverflowPopup(e, date, allEvs.map(id => events.find(ev => ev.id === id)).filter(Boolean));
-      });
-      document.body.appendChild(btn);
-    });
-  });
 }
 
 // ── Quick stats bar ───────────────────────────────────────────
@@ -4863,19 +4843,6 @@ function showOverflowPopup(e, date, evs) {
 }
 function hideOverflowPopup() { overflowPopup.style.display = 'none'; }
 document.addEventListener('click', e => { if (!overflowPopup.contains(e.target)) hideOverflowPopup(); });
-
-// Reposition overflow buttons on scroll
-window.addEventListener('scroll', () => {
-  document.querySelectorAll('.overflow-more-btn').forEach(btn => {
-    const date = btn._date;
-    const cell = document.querySelector(`.day-cell[data-date="${date}"]`);
-    if (cell) {
-      const rect = cell.getBoundingClientRect();
-      btn.style.left = `${rect.left + 4}px`;
-      btn.style.top  = `${rect.bottom - 20}px`;
-    }
-  });
-}, true);
 
 // ── Dark mode ─────────────────────────────────────────────────
 const DARK_KEY = 'prodcal2_darkmode';
