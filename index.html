@@ -1257,6 +1257,7 @@
     <button class="io-btn" id="holidays-btn" title="Manage company holidays">holidays</button>
     <button class="dashboard-toggle-btn" id="dashboard-toggle-btn" title="Toggle dashboard view">⬡ Dashboard</button>
     <button class="pm-toggle-btn" id="pm-toggle-btn" title="Open Project Manager">⊞ Projects</button>
+    <button class="io-btn" id="all-jobs-btn" title="View all jobs">All Jobs</button>
     <button class="io-btn standup-toggle" id="standup-toggle-btn" title="Open daily standup view">Standup</button>
   </div>
 </header>
@@ -1493,6 +1494,17 @@
     <button class="pm-close-btn" id="pm-close-btn">&times;</button>
   </div>
   <div class="pm-body" id="pm-body"></div>
+</div>
+
+<!-- All Jobs Modal -->
+<div class="modal-overlay" id="all-jobs-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;width:580px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #eee;">
+      <h3 style="font-size:16px;font-weight:700;color:#1a1a2a;margin:0;">All Jobs</h3>
+      <button id="all-jobs-close" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">&times;</button>
+    </div>
+    <div id="all-jobs-list" style="overflow-y:auto;padding:12px 20px 20px;flex:1;"></div>
+  </div>
 </div>
 
 <div class="standup-overlay" id="standup-overlay"></div>
@@ -2268,21 +2280,6 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         }
 
     }); // end weekEvents.forEach
-
-    // Handle overflow popup via week-row click (bypasses overflow:hidden on day cells)
-    weekEl.addEventListener('click', e => {
-      if (!weekEl._overflowByCol) return;
-      const rect = weekEl.getBoundingClientRect();
-      const colW = rect.width / 7;
-      const di = Math.floor((e.clientX - rect.left) / colW);
-      const overflow = weekEl._overflowByCol[di];
-      if (!overflow) return;
-      // Only trigger if click is in bottom quarter of the row
-      const rowRelY = e.clientY - rect.top;
-      if (rowRelY < rect.height * 0.6) return;
-      e.stopPropagation();
-      showOverflowPopup(e, overflow.date, overflow.evs);
-    });
 
     weeksEl.appendChild(weekEl);
   });
@@ -4848,6 +4845,75 @@ function showOverflowPopup(e, date, evs) {
 }
 function hideOverflowPopup() { overflowPopup.style.display = 'none'; }
 document.addEventListener('click', e => { if (!overflowPopup.contains(e.target)) hideOverflowPopup(); });
+
+// ── All Jobs modal ────────────────────────────────────────────
+function openAllJobs() {
+  const overlay = document.getElementById('all-jobs-overlay');
+  const list = document.getElementById('all-jobs-list');
+  overlay.style.display = 'flex';
+  list.innerHTML = '';
+
+  const sorted = [...events].sort((a,b) => a.start.localeCompare(b.start));
+  sorted.forEach(ev => {
+    const job = getJobByKey(ev.color);
+    const hex = ev.colorOverride || (job.hex.startsWith('rgba') ? '#1565C0' : job.hex);
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:0;border-radius:8px;overflow:hidden;margin-bottom:6px;border:1px solid #eee;cursor:pointer;';
+
+    const bar = document.createElement('div');
+    bar.style.cssText = `width:6px;flex-shrink:0;background:${hex};align-self:stretch;`;
+
+    const content = document.createElement('div');
+    content.style.cssText = 'flex:1;display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;';
+    content.addEventListener('mouseenter', () => content.style.background = '#f8f8fc');
+    content.addEventListener('mouseleave', () => content.style.background = '#fff');
+    content.addEventListener('click', () => { closeAllJobs(); openEdit(ev.id); });
+
+    const info = document.createElement('div');
+    info.style.flex = '1';
+    const name = document.createElement('div');
+    name.style.cssText = 'font-size:13px;font-weight:600;color:#1a1a2a;';
+    name.textContent = ev.name;
+    const dates = document.createElement('div');
+    dates.style.cssText = 'font-size:11px;color:#888;margin-top:2px;';
+    dates.textContent = fmtRange(ev.start, ev.end) + (ev.status ? ` · ${STATUS_LABELS[ev.status]||ev.status}` : '');
+    info.appendChild(name);
+    info.appendChild(dates);
+    content.appendChild(info);
+
+    if (!isLocked) {
+      const del = document.createElement('button');
+      del.style.cssText = 'background:none;border:none;cursor:pointer;color:#ddd;font-size:18px;padding:0 4px;line-height:1;flex-shrink:0;';
+      del.textContent = '×';
+      del.title = 'Delete';
+      del.addEventListener('mouseenter', () => del.style.color = '#e53935');
+      del.addEventListener('mouseleave', () => del.style.color = '#ddd');
+      del.addEventListener('click', e => {
+        e.stopPropagation();
+        if (confirm(`Delete "${ev.name}"?`)) {
+          events = events.filter(x => x.id !== ev.id);
+          saveData(); render();
+          openAllJobs(); // refresh list
+        }
+      });
+      content.appendChild(del);
+    }
+
+    row.appendChild(bar);
+    row.appendChild(content);
+    list.appendChild(row);
+  });
+}
+
+function closeAllJobs() {
+  document.getElementById('all-jobs-overlay').style.display = 'none';
+}
+
+document.getElementById('all-jobs-btn').addEventListener('click', openAllJobs);
+document.getElementById('all-jobs-close').addEventListener('click', closeAllJobs);
+document.getElementById('all-jobs-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('all-jobs-overlay')) closeAllJobs();
+});
 
 // ── Dark mode ─────────────────────────────────────────────────
 const DARK_KEY = 'prodcal2_darkmode';
