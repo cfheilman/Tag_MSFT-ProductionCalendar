@@ -261,7 +261,7 @@
   .day-cell {
     border-right: 1px solid #E2E2E7; border-bottom: 1px solid #E2E2E7; background: #FFFFFF;
     position: relative; min-height: 185px; max-height: 185px; height: 185px;
-    overflow: hidden; transition: background 0.12s;
+    transition: background 0.12s;
   }
   .day-cell:last-child { border-right: none; }
   .day-cell.weekend { background: #EEEEEF; }
@@ -299,6 +299,7 @@
   /* ── EVENT BARS ──────────────────────────────────────────────── */
   .bars-layer {
     position: absolute; top: var(--day-num-h); left: 0; right: 0; pointer-events: none;
+    overflow: hidden;
   }
   .event-bar {
     position: absolute; height: 21px; border-radius: 5px;
