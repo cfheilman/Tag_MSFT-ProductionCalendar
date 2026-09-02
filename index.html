@@ -1986,41 +1986,38 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     weekDays.forEach((dayObj, di) => {
       const dayEventsOverflow = weekEvents.filter(ev => {
         const slot = weekSlotMap[ev.id] ?? 0;
-        const effEnd = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
-        const segStart = ev.start < dayObj.date ? dayObj.date : ev.start;
-        return slot >= MAX_VISIBLE_SLOTS && segStart <= dayObj.date && effEnd >= dayObj.date && ev.color !== 'charcoal';
+        return slot >= MAX_VISIBLE_SLOTS && ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal';
       });
       if (dayEventsOverflow.length > 0) {
-        // Position indicator just below the last visible bar
-        const moreTop = barsTopOffset + MAX_VISIBLE_SLOTS * (BAR_H + BAR_GAP);
+        // Position at bottom of the barsLayer (which already starts at barsTopOffset)
         const moreEl = document.createElement('div');
+        const colPct = 100 / 7;
         moreEl.style.cssText = `
           position:absolute;
-          left:calc(${di * (100/7)}% + 4px);
-          width:calc(${100/7}% - 8px);
-          top:${moreTop}px;
+          left:calc(${di * colPct}% + 4px);
+          width:calc(${colPct}% - 8px);
+          bottom:2px;
           font-size:9px;font-weight:700;
           color:var(--accent);
           cursor:pointer;
-          text-align:left;
-          padding:2px 6px;
+          text-align:center;
+          padding:2px 4px;
           border-radius:3px;
-          background:rgba(46,109,164,0.08);
+          background:rgba(46,109,164,0.1);
           z-index:20;
           pointer-events:all;
           white-space:nowrap;
-          overflow:hidden;
         `;
         moreEl.textContent = `+${dayEventsOverflow.length} more`;
-        moreEl.title = dayEventsOverflow.map(ev => ev.name).join('\n');
         moreEl.addEventListener('mousedown', e => {
           e.stopPropagation();
           e.preventDefault();
           const allForDay = weekEvents.filter(ev => {
-            const effEnd = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
-            return ev.start <= dayObj.date && effEnd >= dayObj.date && ev.color !== 'charcoal';
+            return ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal';
           });
-          showOverflowPopup(e, dayObj.date, allForDay);
+          // Get position of the clicked element for popup
+          const rect = moreEl.getBoundingClientRect();
+          showOverflowPopup({ clientX: rect.left, clientY: rect.top }, dayObj.date, allForDay);
         });
         barsLayer.appendChild(moreEl);
       }
@@ -4762,46 +4759,75 @@ document.getElementById('pm-overlay').addEventListener('click',closePM);
 const overflowPopup = document.getElementById('overflow-popup');
 function showOverflowPopup(e, date, evs) {
   overflowPopup.innerHTML = '';
-  const title = document.createElement('div');
-  title.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-faint);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;font-family:"JetBrains Mono",monospace;';
-  title.textContent = fmtRange(date, date);
-  overflowPopup.appendChild(title);
+  overflowPopup.style.cssText = `
+    display:none;position:fixed;z-index:500;
+    background:#fff;border:1px solid #DDDDE4;border-radius:12px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.18);
+    padding:8px;min-width:260px;max-width:340px;
+    font-family:'Segoe UI',sans-serif;
+  `;
+
+  // Header with date
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:4px 6px 8px;border-bottom:1px solid #EEEEEF;margin-bottom:6px;';
+  const dateLabel = document.createElement('div');
+  dateLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;';
+  dateLabel.textContent = fmtRange(date, date);
+  const closeBtn = document.createElement('button');
+  closeBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;line-height:1;padding:0 2px;';
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', hideOverflowPopup);
+  header.appendChild(dateLabel);
+  header.appendChild(closeBtn);
+  overflowPopup.appendChild(header);
+
   const uniqueEvs = evs.filter((ev,i,a) => a.findIndex(x=>x.id===ev.id)===i)
     .sort((a,b) => (globalSlotMap[a.id]??0) - (globalSlotMap[b.id]??0));
+
   uniqueEvs.forEach(ev => {
     const job = getJobByKey(ev.color);
     const hex = ev.colorOverride || (job.hex.startsWith('rgba') ? '#1565C0' : job.hex);
+
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:0;border-radius:7px;overflow:hidden;cursor:pointer;margin-bottom:3px;box-shadow:0 1px 3px rgba(0,0,0,0.08);';
+    row.style.cssText = `
+      display:flex;align-items:stretch;border-radius:6px;
+      overflow:hidden;margin-bottom:4px;cursor:pointer;
+      border:1px solid #EEEEEF;
+      transition:box-shadow 0.1s;
+    `;
+    row.addEventListener('mouseenter', () => row.style.boxShadow='0 2px 8px rgba(0,0,0,0.12)');
+    row.addEventListener('mouseleave', () => row.style.boxShadow='none');
     row.addEventListener('click', () => { hideOverflowPopup(); if (!isLocked) openEdit(ev.id); });
 
-    // Color bar on left matching job bar
+    // Color bar
     const colorBar = document.createElement('div');
-    colorBar.style.cssText = `width:8px;flex-shrink:0;background:${hex};align-self:stretch;`;
+    colorBar.style.cssText = `width:6px;flex-shrink:0;background:${hex};`;
     row.appendChild(colorBar);
 
+    // Content
     const content = document.createElement('div');
-    content.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;flex:1;background:#fff;transition:background 0.1s;';
-    row.addEventListener('mouseenter', () => content.style.background='#F4F4F8');
-    row.addEventListener('mouseleave', () => content.style.background='#fff');
+    content.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;flex:1;background:#fff;';
 
+    const info = document.createElement('div');
+    info.style.flex = '1';
     const name = document.createElement('div');
-    name.style.cssText = 'font-size:12px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    name.style.cssText = 'font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
     name.textContent = ev.name;
+    const dates = document.createElement('div');
+    dates.style.cssText = 'font-size:10px;color:var(--text-muted);margin-top:1px;';
+    dates.textContent = fmtRange(ev.start, ev.end);
+    info.appendChild(name);
+    info.appendChild(dates);
+    content.appendChild(info);
 
-    content.appendChild(name);
-    if (ev.status) {
-      const status = document.createElement('div');
-      status.className = `standup-job-status ${ev.status}`;
-      status.textContent = STATUS_LABELS[ev.status]||ev.status;
-      content.appendChild(status);
-    }
-    // Delete button for hidden/overflow jobs
+    // Delete button
     if (!isLocked) {
       const delBtn = document.createElement('button');
-      delBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:#ccc;font-size:16px;padding:0 4px;line-height:1;flex-shrink:0;';
+      delBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:#ddd;font-size:16px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.1s;';
       delBtn.textContent = '×';
-      delBtn.title = 'Delete this job';
+      delBtn.title = 'Delete';
+      delBtn.addEventListener('mouseenter', () => delBtn.style.color='#e53935');
+      delBtn.addEventListener('mouseleave', () => delBtn.style.color='#ddd');
       delBtn.addEventListener('click', e2 => {
         e2.stopPropagation();
         if (confirm(`Delete "${ev.name}"?`)) {
@@ -4812,18 +4838,24 @@ function showOverflowPopup(e, date, evs) {
       });
       content.appendChild(delBtn);
     }
+
     row.appendChild(content);
     overflowPopup.appendChild(row);
   });
-  // Position near click
+  // Position popup above the clicked element
   overflowPopup.style.display = 'block';
-  const rect = overflowPopup.getBoundingClientRect();
-  let left = e.clientX + 8;
-  let top  = e.clientY + 8;
-  if (left + 320 > window.innerWidth) left = e.clientX - 320;
-  if (top + rect.height > window.innerHeight) top = e.clientY - rect.height - 8;
-  overflowPopup.style.left = left + 'px';
-  overflowPopup.style.top  = top  + 'px';
+  overflowPopup.style.left = '-9999px'; // off screen first to measure
+  overflowPopup.style.top  = '-9999px';
+  requestAnimationFrame(() => {
+    const rect = overflowPopup.getBoundingClientRect();
+    let left = e.clientX;
+    let top  = e.clientY - rect.height - 8; // above click
+    if (top < 10) top = e.clientY + 24; // flip below if no room
+    if (left + rect.width > window.innerWidth - 10) left = window.innerWidth - rect.width - 10;
+    if (left < 10) left = 10;
+    overflowPopup.style.left = left + 'px';
+    overflowPopup.style.top  = top  + 'px';
+  });
 }
 function hideOverflowPopup() { overflowPopup.style.display = 'none'; }
 document.addEventListener('click', e => { if (!overflowPopup.contains(e.target)) hideOverflowPopup(); });
