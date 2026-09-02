@@ -1983,7 +1983,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     weekEl.appendChild(barsLayer);
 
     // Overflow indicators — "+N more" per day column
-    if (false) weekDays.forEach((dayObj, di) => {
+    weekDays.forEach((dayObj, di) => {
       const dayEventsOverflow = weekEvents.filter(ev => {
         const slot = weekSlotMap[ev.id] ?? 0;
         const effEnd = ev.liveDate && ev.liveDate > ev.end ? ev.liveDate : ev.end;
@@ -3837,9 +3837,11 @@ document.querySelectorAll('.filter-item').forEach(item => {
 });
 
 // ── Lock / unlock editing ─────────────────────────────────────
-const EDIT_PASSWORD = 'tagprod2026';
+const EDIT_PASSWORD = atob('dGFncG9zdDIwMjY='); // tagpost2026
 const LOCK_KEY = 'prodcal2_locked_v1';
-let isLocked = localStorage.getItem(LOCK_KEY) === 'locked';
+// Default to locked — require password to edit
+let isLocked = localStorage.getItem(LOCK_KEY) !== 'unlocked';
+// Default to locked — require password to edit
 
 function applyLockState() {
   const btn = document.getElementById('lock-btn');
@@ -4793,6 +4795,22 @@ function showOverflowPopup(e, date, evs) {
       status.className = `standup-job-status ${ev.status}`;
       status.textContent = STATUS_LABELS[ev.status]||ev.status;
       content.appendChild(status);
+    }
+    // Delete button for hidden/overflow jobs
+    if (!isLocked) {
+      const delBtn = document.createElement('button');
+      delBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:#ccc;font-size:16px;padding:0 4px;line-height:1;flex-shrink:0;';
+      delBtn.textContent = '×';
+      delBtn.title = 'Delete this job';
+      delBtn.addEventListener('click', e2 => {
+        e2.stopPropagation();
+        if (confirm(`Delete "${ev.name}"?`)) {
+          events = events.filter(x => x.id !== ev.id);
+          saveData(); render();
+          hideOverflowPopup();
+        }
+      });
+      content.appendChild(delBtn);
     }
     row.appendChild(content);
     overflowPopup.appendChild(row);
