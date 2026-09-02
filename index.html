@@ -1994,37 +1994,6 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     barsLayer.style.top = barsTopOffset + 'px';
     weekEl.appendChild(barsLayer);
 
-    // Overflow indicators — "+N more" per day column
-    weekDays.forEach((dayObj, di) => {
-      const dayEventsOverflow = weekEvents.filter(ev => {
-        const slot = weekSlotMap[ev.id] ?? 0;
-        return slot >= MAX_VISIBLE_SLOTS && ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal';
-      });
-      if (dayEventsOverflow.length > 0) {
-        const allForDay = weekEvents.filter(ev =>
-          ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal'
-        );
-        if (!weekEl._overflowByCol) weekEl._overflowByCol = {};
-        weekEl._overflowByCol[di] = { date: dayObj.date, evs: allForDay };
-
-        // Store on cell element for click detection
-        const cellEl = weekEl.querySelectorAll('.day-cell')[di];
-        if (cellEl) cellEl._overflowData = allForDay;
-
-        const colPct = 100 / 7;
-        const moreEl = document.createElement('div');
-        moreEl.style.cssText = `position:absolute;left:3px;right:3px;bottom:2px;font-size:9px;font-weight:700;color:var(--accent);text-align:center;padding:1px 3px;border-radius:3px;background:rgba(46,109,164,0.1);cursor:pointer;z-index:25;`;
-        moreEl.textContent = `+${dayEventsOverflow.length} more`;
-        moreEl.addEventListener('click', e => {
-          e.stopPropagation();
-          showOverflowPopup(e, dayObj.date, allForDay);
-        });
-        // Append to the day cell directly (not barsLayer) to avoid pointer-events:none
-        const moreCell = weekEl.querySelectorAll('.day-cell')[di];
-        if (moreCell) moreCell.appendChild(moreEl);
-      }
-    });
-
     // Compute cell width as percentage (7 equal cols)
     const colW = 100 / 7; // percent
 
@@ -2288,6 +2257,31 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         }
 
     }); // end weekEvents.forEach
+
+    // Overflow indicators — run AFTER cells are built and in DOM
+    weekDays.forEach((dayObj, di) => {
+      const dayEventsOverflow = weekEvents.filter(ev => {
+        const slot = weekSlotMap[ev.id] ?? 0;
+        return slot >= MAX_VISIBLE_SLOTS && ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal';
+      });
+      if (dayEventsOverflow.length === 0) return;
+
+      const allForDay = weekEvents.filter(ev =>
+        ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal'
+      );
+
+      const moreCell = weekEl.querySelectorAll('.day-cell')[di];
+      if (!moreCell) return;
+
+      const moreEl = document.createElement('div');
+      moreEl.style.cssText = `position:absolute;left:3px;right:3px;bottom:2px;font-size:9px;font-weight:700;color:var(--accent);text-align:center;padding:1px 3px;border-radius:3px;background:rgba(46,109,164,0.1);cursor:pointer;z-index:25;`;
+      moreEl.textContent = `+${dayEventsOverflow.length} more`;
+      moreEl.addEventListener('click', e => {
+        e.stopPropagation();
+        showOverflowPopup(e, dayObj.date, allForDay);
+      });
+      moreCell.appendChild(moreEl);
+    });
 
     weeksEl.appendChild(weekEl);
   });
