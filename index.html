@@ -2009,13 +2009,11 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
           white-space:nowrap;
         `;
         moreEl.textContent = `+${dayEventsOverflow.length} more`;
-        moreEl.addEventListener('mousedown', e => {
+        moreEl.addEventListener('click', e => {
           e.stopPropagation();
-          e.preventDefault();
           const allForDay = weekEvents.filter(ev => {
             return ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal';
           });
-          // Get position of the clicked element for popup
           const rect = moreEl.getBoundingClientRect();
           showOverflowPopup({ clientX: rect.left, clientY: rect.top }, dayObj.date, allForDay);
         });
@@ -4795,9 +4793,19 @@ function showOverflowPopup(e, date, evs) {
       border:1px solid #EEEEEF;
       transition:box-shadow 0.1s;
     `;
+    row.addEventListener('click', () => { hideOverflowPopup(); if (!isLocked) openEdit(ev.id); });
     row.addEventListener('mouseenter', () => row.style.boxShadow='0 2px 8px rgba(0,0,0,0.12)');
     row.addEventListener('mouseleave', () => row.style.boxShadow='none');
-    row.addEventListener('click', () => { hideOverflowPopup(); if (!isLocked) openEdit(ev.id); });
+    row.title = isLocked ? ev.name : 'Click to edit · Right-click to delete';
+    row.addEventListener('contextmenu', e2 => {
+      e2.preventDefault();
+      e2.stopPropagation();
+      if (!isLocked && confirm(`Delete "${ev.name}"?`)) {
+        events = events.filter(x => x.id !== ev.id);
+        saveData(); render();
+        hideOverflowPopup();
+      }
+    });
 
     // Color bar
     const colorBar = document.createElement('div');
@@ -4819,25 +4827,6 @@ function showOverflowPopup(e, date, evs) {
     info.appendChild(name);
     info.appendChild(dates);
     content.appendChild(info);
-
-    // Delete button
-    if (!isLocked) {
-      const delBtn = document.createElement('button');
-      delBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:#ddd;font-size:16px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.1s;';
-      delBtn.textContent = '×';
-      delBtn.title = 'Delete';
-      delBtn.addEventListener('mouseenter', () => delBtn.style.color='#e53935');
-      delBtn.addEventListener('mouseleave', () => delBtn.style.color='#ddd');
-      delBtn.addEventListener('click', e2 => {
-        e2.stopPropagation();
-        if (confirm(`Delete "${ev.name}"?`)) {
-          events = events.filter(x => x.id !== ev.id);
-          saveData(); render();
-          hideOverflowPopup();
-        }
-      });
-      content.appendChild(delBtn);
-    }
 
     row.appendChild(content);
     overflowPopup.appendChild(row);
