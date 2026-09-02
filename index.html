@@ -1959,6 +1959,19 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         render();
       });
 
+      // Click in bottom 20px of cell triggers overflow popup if overflow exists
+      cell.addEventListener('click', e => {
+        const rect = cell.getBoundingClientRect();
+        const isBottomZone = e.clientY > rect.bottom - 22;
+        if (!isBottomZone) return;
+        // Check if this cell has overflow events
+        const dateStr = dayObj.date;
+        const cellWeekEvents = (cell._overflowData || []);
+        if (cellWeekEvents.length === 0) return;
+        e.stopPropagation();
+        showOverflowPopup(e, dateStr, cellWeekEvents);
+      });
+
       // Double-click to create a new event starting on this date
       if (!isLocked) {
         cell.addEventListener('dblclick', e => {
@@ -1989,7 +2002,13 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         return slot >= MAX_VISIBLE_SLOTS && ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal';
       });
       if (dayEventsOverflow.length > 0) {
-        // Position at bottom of the barsLayer (which already starts at barsTopOffset)
+        const allForDay = weekEvents.filter(ev =>
+          ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal'
+        );
+        // Store on the day cell for the bottom-zone click handler
+        const cellEl = weekEl.querySelectorAll('.day-cell')[di];
+        if (cellEl) cellEl._overflowData = allForDay;
+
         const moreEl = document.createElement('div');
         const colPct = 100 / 7;
         moreEl.style.cssText = `
@@ -2005,20 +2024,10 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
           border-radius:3px;
           background:rgba(46,109,164,0.1);
           z-index:20;
-          pointer-events:all;
+          pointer-events:none;
           white-space:nowrap;
         `;
         moreEl.textContent = `+${dayEventsOverflow.length} more`;
-        moreEl.addEventListener('click', e => {
-          e.stopPropagation();
-          const allForDay = weekEvents.filter(ev => {
-            return ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal';
-          });
-          const rect = moreEl.getBoundingClientRect();
-          showOverflowPopup({ clientX: rect.left, clientY: rect.top }, dayObj.date, allForDay);
-        });
-        // Append to weekEl (not barsLayer) to avoid pointer-events:none
-        moreEl.style.cssText += 'position:absolute;z-index:20;';
         weekEl.appendChild(moreEl);
       }
     });
