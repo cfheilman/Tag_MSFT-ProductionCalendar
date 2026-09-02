@@ -1252,12 +1252,12 @@
 
   <div style="display:flex;align-items:center;gap:8px;">
     <span id="save-indicator" style="font-size:10px;color:#555;font-family:'JetBrains Mono',monospace;"></span>
+    <button class="io-btn" id="all-jobs-btn" title="View all jobs" style="display:none;">All Jobs</button>
     <button class="io-btn" id="refresh-btn" title="Refresh calendar from server">↻ Refresh</button>
     <button class="io-btn" id="pdf-export-btn" title="Export current view as PDF">PDF</button>
     <button class="io-btn" id="holidays-btn" title="Manage company holidays">holidays</button>
     <button class="dashboard-toggle-btn" id="dashboard-toggle-btn" title="Toggle dashboard view">⬡ Dashboard</button>
     <button class="pm-toggle-btn" id="pm-toggle-btn" title="Open Project Manager">⊞ Projects</button>
-    <button class="io-btn" id="all-jobs-btn" title="View all jobs">All Jobs</button>
     <button class="io-btn standup-toggle" id="standup-toggle-btn" title="Open daily standup view">Standup</button>
   </div>
 </header>
@@ -3837,16 +3837,19 @@ let isLocked = localStorage.getItem(LOCK_KEY) !== 'unlocked';
 
 function applyLockState() {
   const btn = document.getElementById('lock-btn');
+  const allJobsBtn = document.getElementById('all-jobs-btn');
   if (isLocked) {
     document.body.classList.add('view-only');
     btn.textContent = '🔒 Locked';
     btn.classList.remove('unlocked');
     btn.title = 'Click to unlock editing';
+    if (allJobsBtn) allJobsBtn.style.display = 'none';
   } else {
     document.body.classList.remove('view-only');
     btn.textContent = '🔓 Editing';
     btn.classList.add('unlocked');
     btn.title = 'Click to lock';
+    if (allJobsBtn) allJobsBtn.style.display = '';
   }
 }
 
