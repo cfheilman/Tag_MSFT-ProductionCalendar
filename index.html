@@ -1992,26 +1992,16 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         const allForDay = weekEvents.filter(ev =>
           ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal'
         );
-        // Add +N more button to the numRow (top of cell, not clipped by overflow:hidden on bars)
-        const cellEl = weekEl.querySelectorAll('.day-cell')[di];
-        if (cellEl) {
-          const nr = cellEl.querySelector('div'); // numRow is first div
-          if (nr) {
-            const moreBtn = document.createElement('button');
-            moreBtn.textContent = `+${dayEventsOverflow.length} more`;
-            moreBtn.style.cssText = `
-              margin-left:auto;font-size:9px;font-weight:700;
-              color:var(--accent);background:rgba(46,109,164,0.1);
-              border:none;border-radius:3px;padding:1px 5px;
-              cursor:pointer;white-space:nowrap;flex-shrink:0;
-            `;
-            moreBtn.addEventListener('click', e => {
-              e.stopPropagation();
-              showOverflowPopup(e, dayObj.date, allForDay);
-            });
-            nr.appendChild(moreBtn);
-          }
-        }
+        // Store overflow info on weekEl for the week-level click handler
+        if (!weekEl._overflowByCol) weekEl._overflowByCol = {};
+        weekEl._overflowByCol[di] = { date: dayObj.date, evs: allForDay };
+
+        // Visual indicator inside barsLayer (decorative only)
+        const colPct = 100 / 7;
+        const moreEl = document.createElement('div');
+        moreEl.style.cssText = `position:absolute;left:calc(${di*colPct}% + 3px);width:calc(${colPct}% - 6px);bottom:2px;font-size:9px;font-weight:700;color:var(--accent);text-align:center;padding:1px 3px;border-radius:3px;background:rgba(46,109,164,0.1);pointer-events:none;`;
+        moreEl.textContent = `+${dayEventsOverflow.length} more`;
+        barsLayer.appendChild(moreEl);
       }
     });
 
@@ -2278,6 +2268,21 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         }
 
     }); // end weekEvents.forEach
+
+    // Handle overflow popup via week-row click (bypasses overflow:hidden on day cells)
+    weekEl.addEventListener('click', e => {
+      if (!weekEl._overflowByCol) return;
+      const rect = weekEl.getBoundingClientRect();
+      const colW = rect.width / 7;
+      const di = Math.floor((e.clientX - rect.left) / colW);
+      const overflow = weekEl._overflowByCol[di];
+      if (!overflow) return;
+      // Only trigger if click is in bottom quarter of the row
+      const rowRelY = e.clientY - rect.top;
+      if (rowRelY < rect.height * 0.6) return;
+      e.stopPropagation();
+      showOverflowPopup(e, overflow.date, overflow.evs);
+    });
 
     weeksEl.appendChild(weekEl);
   });
