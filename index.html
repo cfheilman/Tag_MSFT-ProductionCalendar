@@ -1996,7 +1996,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
           position:absolute;
           left:calc(${di * colPct}% + 4px);
           width:calc(${colPct}% - 8px);
-          bottom:2px;
+          bottom:3px;
           font-size:9px;font-weight:700;
           color:var(--accent);
           cursor:pointer;
@@ -2017,7 +2017,9 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
           const rect = moreEl.getBoundingClientRect();
           showOverflowPopup({ clientX: rect.left, clientY: rect.top }, dayObj.date, allForDay);
         });
-        barsLayer.appendChild(moreEl);
+        // Append to weekEl (not barsLayer) to avoid pointer-events:none
+        moreEl.style.cssText += 'position:absolute;z-index:20;';
+        weekEl.appendChild(moreEl);
       }
     });
 
