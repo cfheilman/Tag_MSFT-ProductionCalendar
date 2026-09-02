@@ -2004,11 +2004,13 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         const allForDay = weekEvents.filter(ev =>
           ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal'
         );
-        // Store overflow info on weekEl for the week-level click handler
         if (!weekEl._overflowByCol) weekEl._overflowByCol = {};
         weekEl._overflowByCol[di] = { date: dayObj.date, evs: allForDay };
 
-        // Visual indicator inside barsLayer (decorative only)
+        // Store on cell element for click detection
+        const cellEl = weekEl.querySelectorAll('.day-cell')[di];
+        if (cellEl) cellEl._overflowData = allForDay;
+
         const colPct = 100 / 7;
         const moreEl = document.createElement('div');
         moreEl.style.cssText = `position:absolute;left:calc(${di*colPct}% + 3px);width:calc(${colPct}% - 6px);bottom:2px;font-size:9px;font-weight:700;color:var(--accent);text-align:center;padding:1px 3px;border-radius:3px;background:rgba(46,109,164,0.1);pointer-events:none;`;
@@ -2457,6 +2459,16 @@ function render() {
   } // end if (!twoWeekView) for additional months
 
   renderStatsBar();
+
+  // Click handler on the calendar container to catch overflow indicator clicks
+  weeksEl.onclick = e => {
+    const cell = e.target.closest('.day-cell');
+    if (!cell || !cell._overflowData) return;
+    const rect = cell.getBoundingClientRect();
+    if (e.clientY < rect.top + rect.height * 0.72) return;
+    e.stopPropagation();
+    showOverflowPopup(e, cell.dataset.date, cell._overflowData);
+  };
 
 }
 
