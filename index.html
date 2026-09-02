@@ -2343,7 +2343,7 @@ function render() {
   const visibleEvents = allRangeEvents.filter(ev => !activeFilter || ev.color === activeFilter);
 
   // Assign slots GLOBALLY from ALL events so slots never shift when filter changes
-  const globalSlotMap = {}; // eventId -> slot (consistent across all weeks)
+  globalSlotMap = {}; // eventId -> slot (consistent across all weeks)
   const globalSlotOccupied = []; // slot -> array of [effectiveStart, effectiveEnd]
 
   // Helper: get last working day on or before a date respecting SLA flags
@@ -2516,6 +2516,7 @@ function renderStatsBar() {
 // ── Daily Standup panel ─────────────────────────────────────────
 let standupFilter = null; // job color key, null = "all active", 'delivering' = delivering this month
 let showSLA = localStorage.getItem('prodcal2_showSLA') !== 'false'; // default on
+let globalSlotMap = {}; // updated on each render, used by overflow popup
 let twoWeekView = localStorage.getItem('prodcal2_twoweek') === 'true';
 
 const STATUS_LABELS = {
