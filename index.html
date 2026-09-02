@@ -261,7 +261,7 @@
   .day-cell {
     border-right: 1px solid #E2E2E7; border-bottom: 1px solid #E2E2E7; background: #FFFFFF;
     position: relative; min-height: 185px; max-height: 185px; height: 185px;
-    overflow: hidden; transition: background 0.12s;
+    transition: background 0.12s;
   }
   .day-cell:last-child { border-right: none; }
   .day-cell.weekend { background: #EEEEEF; }
@@ -298,7 +298,7 @@
 
   /* ── EVENT BARS ──────────────────────────────────────────────── */
   .bars-layer {
-    position: absolute; top: var(--day-num-h); left: 0; right: 0; pointer-events: none;
+    position: absolute; top: var(--day-num-h); left: 0; right: 0; bottom: 0; pointer-events: none; overflow: hidden;
   }
   .event-bar {
     position: absolute; height: 21px; border-radius: 5px;
@@ -2013,8 +2013,12 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
 
         const colPct = 100 / 7;
         const moreEl = document.createElement('div');
-        moreEl.style.cssText = `position:absolute;left:calc(${di*colPct}% + 3px);width:calc(${colPct}% - 6px);bottom:2px;font-size:9px;font-weight:700;color:var(--accent);text-align:center;padding:1px 3px;border-radius:3px;background:rgba(46,109,164,0.1);pointer-events:none;`;
+        moreEl.style.cssText = `position:absolute;left:calc(${di*colPct}% + 3px);width:calc(${colPct}% - 6px);bottom:2px;font-size:9px;font-weight:700;color:var(--accent);text-align:center;padding:1px 3px;border-radius:3px;background:rgba(46,109,164,0.1);cursor:pointer;z-index:10;pointer-events:all;`;
         moreEl.textContent = `+${dayEventsOverflow.length} more`;
+        moreEl.addEventListener('click', e => {
+          e.stopPropagation();
+          showOverflowPopup(e, dayObj.date, allForDay);
+        });
         barsLayer.appendChild(moreEl);
       }
     });
