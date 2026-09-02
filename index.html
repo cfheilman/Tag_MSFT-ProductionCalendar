@@ -2013,13 +2013,15 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
 
         const colPct = 100 / 7;
         const moreEl = document.createElement('div');
-        moreEl.style.cssText = `position:absolute;left:calc(${di*colPct}% + 3px);width:calc(${colPct}% - 6px);bottom:2px;font-size:9px;font-weight:700;color:var(--accent);text-align:center;padding:1px 3px;border-radius:3px;background:rgba(46,109,164,0.1);cursor:pointer;z-index:10;pointer-events:all;`;
+        moreEl.style.cssText = `position:absolute;left:3px;right:3px;bottom:2px;font-size:9px;font-weight:700;color:var(--accent);text-align:center;padding:1px 3px;border-radius:3px;background:rgba(46,109,164,0.1);cursor:pointer;z-index:25;`;
         moreEl.textContent = `+${dayEventsOverflow.length} more`;
         moreEl.addEventListener('click', e => {
           e.stopPropagation();
           showOverflowPopup(e, dayObj.date, allForDay);
         });
-        barsLayer.appendChild(moreEl);
+        // Append to the day cell directly (not barsLayer) to avoid pointer-events:none
+        const moreCell = weekEl.querySelectorAll('.day-cell')[di];
+        if (moreCell) moreCell.appendChild(moreEl);
       }
     });
 
@@ -4775,25 +4777,39 @@ function showOverflowPopup(e, date, evs) {
   overflowPopup.innerHTML = '';
   overflowPopup.style.cssText = `
     display:none;position:fixed;z-index:500;
-    background:#fff;border:1px solid #DDDDE4;border-radius:12px;
-    box-shadow:0 8px 32px rgba(0,0,0,0.18);
-    padding:8px;min-width:260px;max-width:340px;
-    font-family:'Segoe UI',sans-serif;
+    background:#fff;border-radius:16px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.22);
+    padding:0;min-width:280px;max-width:360px;
+    font-family:'Segoe UI',sans-serif;overflow:hidden;
   `;
 
-  // Header with date
+  // Header — date like Google Calendar
+  const d = new Date(date + 'T12:00:00');
+  const dayName = d.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase();
+  const dayNum = d.getDate();
+
   const header = document.createElement('div');
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:4px 6px 8px;border-bottom:1px solid #EEEEEF;margin-bottom:6px;';
-  const dateLabel = document.createElement('div');
-  dateLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;';
-  dateLabel.textContent = fmtRange(date, date);
+  header.style.cssText = 'background:#f1f3f4;padding:12px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;';
+  const headerLeft = document.createElement('div');
+  const dayNameEl = document.createElement('div');
+  dayNameEl.style.cssText = 'font-size:11px;font-weight:600;color:#444;letter-spacing:0.08em;';
+  dayNameEl.textContent = dayName;
+  const dayNumEl = document.createElement('div');
+  dayNumEl.style.cssText = 'font-size:28px;font-weight:400;color:#1a1a2a;line-height:1.1;margin-top:2px;';
+  dayNumEl.textContent = dayNum;
+  headerLeft.appendChild(dayNameEl);
+  headerLeft.appendChild(dayNumEl);
   const closeBtn = document.createElement('button');
-  closeBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;line-height:1;padding:0 2px;';
+  closeBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:#888;font-size:20px;line-height:1;padding:0;margin-top:2px;';
   closeBtn.textContent = '×';
   closeBtn.addEventListener('click', hideOverflowPopup);
-  header.appendChild(dateLabel);
+  header.appendChild(headerLeft);
   header.appendChild(closeBtn);
   overflowPopup.appendChild(header);
+
+  // Job bars
+  const jobList = document.createElement('div');
+  jobList.style.cssText = 'padding:8px 12px 12px;display:flex;flex-direction:column;gap:4px;';
 
   const uniqueEvs = evs.filter((ev,i,a) => a.findIndex(x=>x.id===ev.id)===i)
     .sort((a,b) => (globalSlotMap[a.id]??0) - (globalSlotMap[b.id]??0));
@@ -4802,60 +4818,43 @@ function showOverflowPopup(e, date, evs) {
     const job = getJobByKey(ev.color);
     const hex = ev.colorOverride || (job.hex.startsWith('rgba') ? '#1565C0' : job.hex);
 
-    const row = document.createElement('div');
-    row.style.cssText = `
-      display:flex;align-items:stretch;border-radius:6px;
-      overflow:hidden;margin-bottom:4px;cursor:pointer;
-      border:1px solid #EEEEEF;
-      transition:box-shadow 0.1s;
+    const bar = document.createElement('div');
+    bar.style.cssText = `
+      background:${hex};border-radius:4px;
+      padding:5px 10px;cursor:pointer;
+      display:flex;align-items:center;justify-content:space-between;
+      transition:filter 0.1s;
     `;
-    row.addEventListener('click', () => { hideOverflowPopup(); if (!isLocked) openEdit(ev.id); });
-    row.addEventListener('mouseenter', () => row.style.boxShadow='0 2px 8px rgba(0,0,0,0.12)');
-    row.addEventListener('mouseleave', () => row.style.boxShadow='none');
-    row.title = isLocked ? ev.name : 'Click to edit · Right-click to delete';
-    row.addEventListener('contextmenu', e2 => {
+    bar.addEventListener('mouseenter', () => bar.style.filter='brightness(1.1)');
+    bar.addEventListener('mouseleave', () => bar.style.filter='');
+    bar.addEventListener('click', () => { hideOverflowPopup(); if (!isLocked) openEdit(ev.id); });
+    bar.title = isLocked ? ev.name : 'Click to edit · Right-click to delete';
+    bar.addEventListener('contextmenu', e2 => {
       e2.preventDefault();
-      e2.stopPropagation();
       if (!isLocked && confirm(`Delete "${ev.name}"?`)) {
         events = events.filter(x => x.id !== ev.id);
-        saveData(); render();
-        hideOverflowPopup();
+        saveData(); render(); hideOverflowPopup();
       }
     });
 
-    // Color bar
-    const colorBar = document.createElement('div');
-    colorBar.style.cssText = `width:6px;flex-shrink:0;background:${hex};`;
-    row.appendChild(colorBar);
-
-    // Content
-    const content = document.createElement('div');
-    content.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;flex:1;background:#fff;';
-
-    const info = document.createElement('div');
-    info.style.flex = '1';
-    const name = document.createElement('div');
-    name.style.cssText = 'font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    const name = document.createElement('span');
+    name.style.cssText = 'font-size:12px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;';
     name.textContent = ev.name;
-    const dates = document.createElement('div');
-    dates.style.cssText = 'font-size:10px;color:var(--text-muted);margin-top:1px;';
-    dates.textContent = fmtRange(ev.start, ev.end);
-    info.appendChild(name);
-    info.appendChild(dates);
-    content.appendChild(info);
-
-    row.appendChild(content);
-    overflowPopup.appendChild(row);
+    bar.appendChild(name);
+    jobList.appendChild(bar);
   });
-  // Position popup above the clicked element
+
+  overflowPopup.appendChild(jobList);
+
+  // Position popup
   overflowPopup.style.display = 'block';
-  overflowPopup.style.left = '-9999px'; // off screen first to measure
-  overflowPopup.style.top  = '-9999px';
+  overflowPopup.style.left = '-9999px';
+  overflowPopup.style.top = '-9999px';
   requestAnimationFrame(() => {
     const rect = overflowPopup.getBoundingClientRect();
-    let left = e.clientX;
-    let top  = e.clientY - rect.height - 8; // above click
-    if (top < 10) top = e.clientY + 24; // flip below if no room
+    let left = e.clientX - rect.width / 2;
+    let top  = e.clientY - rect.height - 8;
+    if (top < 10) top = e.clientY + 20;
     if (left + rect.width > window.innerWidth - 10) left = window.innerWidth - rect.width - 10;
     if (left < 10) left = 10;
     overflowPopup.style.left = left + 'px';
