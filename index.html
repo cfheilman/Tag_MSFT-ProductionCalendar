@@ -1197,7 +1197,8 @@
 
   /* ── VIEW-ONLY ───────────────────────────────────────────────── */
   body.view-only .add-btn { display: none; }
-  body.view-only .event-bar { cursor: default; pointer-events: none; }
+  body.view-only .event-bar { cursor: default; }
+  body.view-only .event-bar { pointer-events: all; } /* keep tooltip working in locked mode */
   body.view-only [id="export-btn"] { display: none; }
   body.view-only [id="holidays-btn"] { display: none; }
   body.view-only .note-delete { display: none; }
@@ -2283,13 +2284,28 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     weekDays.forEach((dayObj, di) => {
       const dayEventsOverflow = weekEvents.filter(ev => {
         const slot = weekSlotMap[ev.id] ?? 0;
-        return slot >= MAX_VISIBLE_SLOTS && ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal';
+        if (slot < MAX_VISIBLE_SLOTS) return false;
+        if (ev.start > dayObj.date || ev.end < dayObj.date) return false;
+        if (ev.color === 'charcoal') return false;
+        const d = new Date(dayObj.date + 'T12:00:00');
+        const dow = d.getDay();
+        if (ev.weekdaysOnly && (dow === 0 || dow === 6)) return false;
+        if (ev.skipHolidays && getHolidaysOnDate(dayObj.date).length > 0) return false;
+        return true;
       });
       if (dayEventsOverflow.length === 0) return;
 
-      const allForDay = weekEvents.filter(ev =>
-        ev.start <= dayObj.date && ev.end >= dayObj.date && ev.color !== 'charcoal'
-      );
+        const allForDay = weekEvents.filter(ev => {
+        if (ev.start > dayObj.date || ev.end < dayObj.date) return false;
+        if (ev.color === 'charcoal') return false;
+        // Respect weekdaysOnly
+        const d = new Date(dayObj.date + 'T12:00:00');
+        const dow = d.getDay();
+        if (ev.weekdaysOnly && (dow === 0 || dow === 6)) return false;
+        // Respect skipHolidays
+        if (ev.skipHolidays && getHolidaysOnDate(dayObj.date).length > 0) return false;
+        return true;
+      });
 
       const moreCell = weekEl.querySelectorAll('.day-cell')[di];
       if (!moreCell) return;
