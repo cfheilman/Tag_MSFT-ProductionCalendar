@@ -2023,11 +2023,34 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
 
       if (!jobInThisWeek && !slaInThisWeek) return;
 
-      const rawSlot = weekSlotMap[ev.id];
+      const rawSlot = weekSlotMap[ev.id] ?? 0;
+      // Per-column visibility: a bar is visible on days where fewer than MAX_VISIBLE_SLOTS
+      // other jobs (with lower global slots) are also active.
+      // We compute per-column effective slot for this bar later during segment rendering.
+      // For now, precompute a per-day rank map for this week.
+      // A bar is hidden globally only if it's NEVER visible in this week.
+      const isEverVisible = weekDays.some(dayD => {
+        if (ev.start > dayD.date || ev.end < dayD.date) return false;
+        const dow2 = new Date(dayD.date + 'T12:00:00').getDay();
+        if (ev.weekdaysOnly && (dow2 === 0 || dow2 === 6)) return false;
+        // Count jobs with lower slots active on this day
+        const rank = weekEvents.filter(other => {
+          if (other.id === ev.id) return false;
+          if (other.start > dayD.date || other.end < dayD.date) return false;
+          const odow = new Date(dayD.date + 'T12:00:00').getDay();
+          if (other.weekdaysOnly && (odow === 0 || odow === 6)) return false;
+          return (weekSlotMap[other.id] ?? 0) < rawSlot;
+        }).length;
+        return rank < MAX_VISIBLE_SLOTS;
+      });
+      if (!isEverVisible) return;
+
+      // Effective slot for positioning: use rawSlot (bars stay on consistent rows within week)
       const slot = rawSlot;
       const top  = slot * (BAR_H + BAR_GAP);
-      // Hide bars that exceed the visible slot limit — shown via overflow popup instead
-      if (slot >= MAX_VISIBLE_SLOTS) return;
+      // Only skip rendering if global slot is too high AND no per-day benefit
+      // (isEverVisible above already handles the skip)
+      
       const segStart = ev.start < weekStart ? weekStart : ev.start;
       const segEnd   = ev.end   > weekEnd   ? weekEnd   : ev.end;
 
@@ -2286,7 +2309,15 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         const dow = d.getDay();
         if (ev.weekdaysOnly && (dow === 0 || dow === 6)) return false;
         if (ev.skipHolidays && getHolidaysOnDate(dayObj.date).length > 0) return false;
-        return (weekSlotMap[ev.id] ?? 0) >= MAX_VISIBLE_SLOTS;
+        // Count how many other active jobs have lower slots on this day
+        const mySlot = weekSlotMap[ev.id] ?? 0;
+        const rank = weekEvents.filter(other => {
+          if (other.id === ev.id) return false;
+          if (other.start > dayObj.date || other.end < dayObj.date) return false;
+          if (other.weekdaysOnly && (dow === 0 || dow === 6)) return false;
+          return (weekSlotMap[other.id] ?? 0) < mySlot;
+        }).length;
+        return rank >= MAX_VISIBLE_SLOTS;
       });
       if (dayEventsOverflow.length === 0) return;
 
