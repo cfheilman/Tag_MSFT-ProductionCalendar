@@ -1907,6 +1907,23 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     const weekSlotMap = {};
     weekEvents.forEach(ev => { weekSlotMap[ev.id] = globalSlotMap[ev.id] || 0; });
 
+    // Per-day display row map: compact active jobs into rows 0,1,2... by global slot order
+    const dayDisplayRow = {}; // {date: {evId: displayRow}}
+    weekDays.forEach(dayObj => {
+      const dow = new Date(dayObj.date + 'T12:00:00').getDay();
+      const activeToday = weekEvents
+        .filter(ev => {
+          if (ev.start > dayObj.date || ev.end < dayObj.date) return false;
+          if (ev.weekdaysOnly && (dow === 0 || dow === 6)) return false;
+          if (ev.skipHolidays && getHolidaysOnDate(dayObj.date).length > 0) return false;
+          return true;
+        })
+        .sort((a,b) => (weekSlotMap[a.id]??0) - (weekSlotMap[b.id]??0));
+      const rowMap = {};
+      activeToday.forEach((ev, i) => { rowMap[ev.id] = i; });
+      dayDisplayRow[dayObj.date] = rowMap;
+    });
+
     const cellHeight = twoWeekView ? 340 : 185;
     weekEl.style.height = cellHeight + 'px';
     weekEl.style.minHeight = cellHeight + 'px';
@@ -2024,9 +2041,20 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       if (!jobInThisWeek && !slaInThisWeek) return;
 
       const rawSlot = weekSlotMap[ev.id] ?? 0;
-      const slot = rawSlot;
+      // Use the minimum display row this bar gets across all its active days in the week
+      // This ensures bars render at the lowest possible row without gaps
+      const minDisplayRow = Math.min(...weekDays
+        .filter(d => {
+          if (ev.start > d.date || ev.end < d.date) return false;
+          const dow2 = new Date(d.date + 'T12:00:00').getDay();
+          if (ev.weekdaysOnly && (dow2 === 0 || dow2 === 6)) return false;
+          return true;
+        })
+        .map(d => (dayDisplayRow[d.date]?.[ev.id] ?? rawSlot))
+      );
+      if (minDisplayRow >= MAX_VISIBLE_SLOTS) return;
+      const slot = minDisplayRow;
       const top  = slot * (BAR_H + BAR_GAP);
-      if (slot >= MAX_VISIBLE_SLOTS) return;
       const segStart = ev.start < weekStart ? weekStart : ev.start;
       const segEnd   = ev.end   > weekEnd   ? weekEnd   : ev.end;
 
@@ -2285,7 +2313,8 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         const dow = d.getDay();
         if (ev.weekdaysOnly && (dow === 0 || dow === 6)) return false;
         if (ev.skipHolidays && getHolidaysOnDate(dayObj.date).length > 0) return false;
-        return (weekSlotMap[ev.id] ?? 0) >= MAX_VISIBLE_SLOTS;
+        const displayRow = dayDisplayRow[dayObj.date]?.[ev.id] ?? (weekSlotMap[ev.id] ?? 0);
+        return displayRow >= MAX_VISIBLE_SLOTS;
       });
       if (dayEventsOverflow.length === 0) return;
 
@@ -2387,13 +2416,17 @@ function render() {
     return ev.liveDate;
   }
 
-  // Sort: group by workstream first, then by start date, OOO last
+  // Sort: primary by start date so earlier jobs claim lower slots first
+  // Secondary by workstream (Windows before M365 on same day), OOO always last
   const wsOrder = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
   [...eventsForSlots].sort((a,b) => {
+    const aIsOOO = a.color === 'charcoal';
+    const bIsOOO = b.color === 'charcoal';
+    if (aIsOOO !== bIsOOO) return aIsOOO ? 1 : -1;
+    if (a.start !== b.start) return a.start.localeCompare(b.start);
     const aOrd = wsOrder[a.color] ?? 50;
     const bOrd = wsOrder[b.color] ?? 50;
     if (aOrd !== bOrd) return aOrd - bOrd;
-    if (a.start !== b.start) return a.start.localeCompare(b.start);
     return b.end.localeCompare(a.end);
   }).forEach(ev => {
     const effStart = ev.start;
