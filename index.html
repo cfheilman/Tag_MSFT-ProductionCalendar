@@ -1576,7 +1576,7 @@ async function saveData() {
   // Push to GitHub
   try {
     showSaveIndicator('saving...', '#888');
-    const payload = { events, nextId, updated: Date.now(), deliveryLog };
+    const payload = { events, nextId, updated: Date.now(), deliveryLog, jobRegistry };
     const res = await fetch(JBIN_URL, {
       method: 'PUT',
       headers: {
@@ -1612,6 +1612,18 @@ async function loadData() {
         if (d.deliveryLog) {
           deliveryLog = d.deliveryLog;
           localStorage.setItem(DELIVERIES_KEY, JSON.stringify(deliveryLog));
+        }
+        // Load jobRegistry (MC links, pinned docs) from JSONBin
+        if (d.jobRegistry && Array.isArray(d.jobRegistry)) {
+          // Merge — preserve built-in keys, update with saved data
+          d.jobRegistry.forEach(saved => {
+            const existing = jobRegistry.find(j => j.key === saved.key);
+            if (existing) {
+              if (saved.missionControls) existing.missionControls = saved.missionControls;
+              if (saved.pinnedDocs) existing.pinnedDocs = saved.pinnedDocs;
+            }
+          });
+          localStorage.setItem(JOBS_KEY, JSON.stringify(jobRegistry));
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
         localStorage.setItem(STORAGE_ID_KEY, String(nextId));
@@ -1661,6 +1673,15 @@ async function fetchLatest() {
         if (d.deliveryLog) {
           deliveryLog = d.deliveryLog;
           localStorage.setItem(DELIVERIES_KEY, JSON.stringify(deliveryLog));
+        }
+        if (d.jobRegistry && Array.isArray(d.jobRegistry)) {
+          d.jobRegistry.forEach(saved => {
+            const existing = jobRegistry.find(j => j.key === saved.key);
+            if (existing) {
+              if (saved.missionControls) existing.missionControls = saved.missionControls;
+              if (saved.pinnedDocs) existing.pinnedDocs = saved.pinnedDocs;
+            }
+          });
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
         render();
@@ -3623,6 +3644,8 @@ function loadJobs() {
 }
 function saveJobs(jobs) {
   localStorage.setItem(JOBS_KEY, JSON.stringify(jobs));
+  // Push to JSONBin so workstream data (MC links, pinned docs) syncs across browsers
+  if (typeof saveData === 'function' && typeof events !== 'undefined') saveData();
 }
 
 let jobRegistry = loadJobs();
