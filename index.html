@@ -4741,6 +4741,31 @@ function renderPMJob(ev,hex,group,statusCycle){
   }
   inner.appendChild(liveDateSec);
 
+  // ── Team ──────────────────────────────────────────────────────
+  const teamSec = document.createElement('div');
+  const teamLbl = document.createElement('div');
+  teamLbl.className = 'pm-section-label';
+  teamLbl.textContent = 'Team';
+  teamSec.appendChild(teamLbl);
+
+  const teamInput = document.createElement('input');
+  teamInput.type = 'text';
+  teamInput.className = 'pm-doc-input';
+  teamInput.placeholder = 'e.g. Emmett (Editor), Troy (AE)';
+  teamInput.value = localStorage.getItem('prodcal2_pm_team_'+ev.id) || '';
+  teamInput.addEventListener('click', e => e.stopPropagation());
+  teamInput.addEventListener('change', () => {
+    localStorage.setItem('prodcal2_pm_team_'+ev.id, teamInput.value.trim());
+  });
+  if (!isLocked) teamSec.appendChild(teamInput);
+  else if (teamInput.value) {
+    const teamDisplay = document.createElement('div');
+    teamDisplay.style.cssText = 'font-size:12px;color:var(--text);padding:4px 0;';
+    teamDisplay.textContent = teamInput.value;
+    teamSec.appendChild(teamDisplay);
+  }
+  inner.appendChild(teamSec);
+
   // ── Documents — Brief, Naming Doc, Mission Control
   const docSec=document.createElement('div');
   const docLbl=document.createElement('div');docLbl.className='pm-section-label';docLbl.textContent='Documents';
