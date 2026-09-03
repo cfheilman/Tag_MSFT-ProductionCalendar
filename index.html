@@ -1904,6 +1904,8 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     });
 
     // Use global slot map — no per-week reassignment
+    // But recalculate slots for this specific week respecting weekdaysOnly
+    // so weekend-skipping jobs don't hog slots on weekend columns
     const weekSlotMap = {};
     weekEvents.forEach(ev => { weekSlotMap[ev.id] = globalSlotMap[ev.id] || 0; });
 
@@ -2407,13 +2409,30 @@ function render() {
     let slot = 0;
     while (true) {
       const occupants = globalSlotOccupied[slot] || [];
-      const conflicts = occupants.some(([os, oe]) => effStart <= oe && effEnd >= os);
+      // Two events conflict only if they share at least one day both are active
+      const conflicts = occupants.some(([os, oe, oWeekdaysOnly]) => {
+        if (effStart > oe || effEnd < os) return false;
+        // If either is weekdaysOnly, check if they share any weekday
+        if (ev.weekdaysOnly || oWeekdaysOnly) {
+          let d = new Date(Math.max(new Date(effStart), new Date(os)));
+          const end = new Date(Math.min(new Date(effEnd), new Date(oe)));
+          while (d <= end) {
+            const dow = d.getDay();
+            const evActive = !ev.weekdaysOnly || (dow !== 0 && dow !== 6);
+            const oActive  = !oWeekdaysOnly   || (dow !== 0 && dow !== 6);
+            if (evActive && oActive) return true;
+            d.setDate(d.getDate() + 1);
+          }
+          return false;
+        }
+        return true;
+      });
       if (!conflicts) break;
       slot++;
     }
     globalSlotMap[ev.id] = slot;
     if (!globalSlotOccupied[slot]) globalSlotOccupied[slot] = [];
-    globalSlotOccupied[slot].push([effStart, effEnd]);
+    globalSlotOccupied[slot].push([effStart, effEnd, ev.weekdaysOnly]);
   });
 
   // Render each week row
