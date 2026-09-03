@@ -3123,25 +3123,22 @@ function renderStandupBody() {
     ensureDeliveredSection();
   }
 
+  const shownWsHeaders = new Set(); // track within this render
+
   jobsToShow.forEach(ev => {
     if (ev.status === 'delivered') return;
 
     // ── Workstream header (colored bar with MC + Pinned Docs) ──
-    // Show when in "All" view — insert header when workstream changes
-    if (standupFilter === null) {
-      const wsKey = ev.color;
-      const wsJob = getJobByKey(wsKey);
-      const wsHex = wsJob.hex.startsWith('rgba') ? '#1565C0' : wsJob.hex;
+    const wsKey = ev.color;
+    const wsJob = getJobByKey(wsKey);
+    const wsHex = wsJob.hex.startsWith('rgba') ? '#1565C0' : wsJob.hex;
 
-      // Track which workstream headers we've already shown this render
-      if (!body._shownWsHeaders) body._shownWsHeaders = {};
-
-      // Get current quarter for this job
+    if (wsKey !== 'charcoal') {
       const fqO = getFiscalQuarter ? getFiscalQuarter(getEffectiveDate(ev)) : null;
       const wsHeaderKey = wsKey + (fqO ? fqO.label : '');
 
-      if (wsKey !== 'charcoal' && !body._shownWsHeaders[wsHeaderKey]) {
-        body._shownWsHeaders[wsHeaderKey] = true;
+      if (!shownWsHeaders.has(wsHeaderKey)) {
+        shownWsHeaders.add(wsHeaderKey);
 
         const wsBar = document.createElement('div');
         wsBar.style.cssText = `
@@ -3154,7 +3151,6 @@ function renderStandupBody() {
         wsName.textContent = wsJob.name + (fqO ? ` · ${fqO.label}` : '');
         wsBar.appendChild(wsName);
 
-        // Mission Control chip
         if (fqO) {
           const mcKey = `${wsKey}_${fqO.label.replace(' ','_')}`;
           const mcVal = loadMC(mcKey);
@@ -3165,8 +3161,7 @@ function renderStandupBody() {
             mcChip.textContent = '↗ Mission Control';
             wsBar.appendChild(mcChip);
           }
-          // Pinned docs chips
-          const wsReg = jobRegistry.find(j=>j.key===wsKey);
+          const wsReg = jobRegistry.find(j => j.key === wsKey);
           const pinnedKey = `${wsKey}_${fqO.label.replace(' ','_')}`;
           const pinnedDocs = (wsReg && wsReg.pinnedDocs && wsReg.pinnedDocs[pinnedKey]) || [];
           pinnedDocs.forEach(doc => {
