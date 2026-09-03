@@ -2342,7 +2342,10 @@ function render() {
   // Filtered events for rendering (respects activeFilter)
   const visibleEvents = allRangeEvents.filter(ev => !activeFilter || ev.color === activeFilter);
 
-  // Assign slots GLOBALLY from ALL events so slots never shift when filter changes
+  // Assign slots — when filter active use only visible events so they pack into top rows
+  // When no filter use all events so slots stay stable when toggling filters
+  const eventsForSlots = activeFilter ? visibleEvents : allRangeEvents;
+
   globalSlotMap = {}; // eventId -> slot (consistent across all weeks)
   const globalSlotOccupied = []; // slot -> array of [effectiveStart, effectiveEnd]
 
@@ -2350,24 +2353,20 @@ function render() {
   function getSlaEffectiveEnd(ev) {
     if (!ev.liveDate || ev.liveDate <= ev.end) return ev.end;
     if (!ev.slaWeekdaysOnly && !ev.slaSkipHolidays) return ev.liveDate;
-    // Walk back from liveDate to find last valid SLA day
-    let d = ev.liveDate;
-    // For slot purposes just use liveDate — visual rendering handles the detail
     return ev.liveDate;
   }
 
   // Sort: group by workstream first, then by start date, OOO last
-  // Workstream order: Windows(green) → M365(blue2) → Intel(purple) → OOO(charcoal)
   const wsOrder = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
-  [...allRangeEvents].sort((a,b) => {
+  [...eventsForSlots].sort((a,b) => {
     const aOrd = wsOrder[a.color] ?? 50;
     const bOrd = wsOrder[b.color] ?? 50;
-    if (aOrd !== bOrd) return aOrd - bOrd; // group by workstream
+    if (aOrd !== bOrd) return aOrd - bOrd;
     if (a.start !== b.start) return a.start.localeCompare(b.start);
-    return b.end.localeCompare(a.end); // longer jobs first within same start
+    return b.end.localeCompare(a.end);
   }).forEach(ev => {
     const effStart = ev.start;
-    const effEnd   = ev.end; // use job end only — live date no longer extends slot
+    const effEnd   = ev.end;
     let slot = 0;
     while (true) {
       const occupants = globalSlotOccupied[slot] || [];
