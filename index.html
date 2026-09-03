@@ -3124,7 +3124,62 @@ function renderStandupBody() {
   }
 
   jobsToShow.forEach(ev => {
-    if (ev.status === 'delivered') return; // delivered jobs handled separately below
+    if (ev.status === 'delivered') return;
+
+    // ── Workstream header (colored bar with MC + Pinned Docs) ──
+    // Show when in "All" view — insert header when workstream changes
+    if (standupFilter === null) {
+      const wsKey = ev.color;
+      const wsJob = getJobByKey(wsKey);
+      const wsHex = wsJob.hex.startsWith('rgba') ? '#1565C0' : wsJob.hex;
+
+      // Track which workstream headers we've already shown this render
+      if (!body._shownWsHeaders) body._shownWsHeaders = {};
+
+      // Get current quarter for this job
+      const fqO = getFiscalQuarter ? getFiscalQuarter(getEffectiveDate(ev)) : null;
+      const wsHeaderKey = wsKey + (fqO ? fqO.label : '');
+
+      if (wsKey !== 'charcoal' && !body._shownWsHeaders[wsHeaderKey]) {
+        body._shownWsHeaders[wsHeaderKey] = true;
+
+        const wsBar = document.createElement('div');
+        wsBar.style.cssText = `
+          display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+          padding:8px 14px;margin:10px 0 4px;
+          background:${wsHex};border-radius:8px;
+        `;
+        const wsName = document.createElement('span');
+        wsName.style.cssText = 'font-size:11px;font-weight:700;color:#fff;letter-spacing:0.04em;margin-right:4px;';
+        wsName.textContent = wsJob.name + (fqO ? ` · ${fqO.label}` : '');
+        wsBar.appendChild(wsName);
+
+        // Mission Control chip
+        if (fqO) {
+          const mcKey = `${wsKey}_${fqO.label.replace(' ','_')}`;
+          const mcVal = loadMC(mcKey);
+          if (mcVal) {
+            const mcChip = document.createElement('a');
+            mcChip.href = mcVal; mcChip.target = '_blank';
+            mcChip.style.cssText = 'font-size:10px;font-weight:600;color:#fff;background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;text-decoration:none;white-space:nowrap;';
+            mcChip.textContent = '↗ Mission Control';
+            wsBar.appendChild(mcChip);
+          }
+          // Pinned docs chips
+          const wsReg = jobRegistry.find(j=>j.key===wsKey);
+          const pinnedKey = `${wsKey}_${fqO.label.replace(' ','_')}`;
+          const pinnedDocs = (wsReg && wsReg.pinnedDocs && wsReg.pinnedDocs[pinnedKey]) || [];
+          pinnedDocs.forEach(doc => {
+            const chip = document.createElement('a');
+            chip.href = doc.url; chip.target = '_blank';
+            chip.style.cssText = 'font-size:10px;color:#fff;background:rgba(255,255,255,0.15);border-radius:4px;padding:2px 8px;text-decoration:none;white-space:nowrap;';
+            chip.textContent = `↗ ${doc.name}`;
+            wsBar.appendChild(chip);
+          });
+        }
+        body.appendChild(wsBar);
+      }
+    } // delivered jobs handled separately below
     const job = getJobByKey(ev.color);
     const card = document.createElement('div');
     card.className = 'standup-job';
@@ -3205,78 +3260,6 @@ function renderStandupBody() {
     const bodyDiv = document.createElement('div');
     bodyDiv.addEventListener('click', e => e.stopPropagation());
     bodyDiv.className = 'standup-job-body';
-    const noteLines = (ev.notes || '').split('\n').map(l => l.trim()).filter(l => l);
-    if (noteLines.length > 0) {
-      const wbsLabel = document.createElement('div');
-      wbsLabel.className = 'standup-internal-label';
-      wbsLabel.style.cssText = 'padding:8px 16px 4px;';
-      wbsLabel.textContent = 'Work Back Schedule';
-      bodyDiv.appendChild(wbsLabel);
-      const ul = document.createElement('ul');
-      ul.className = 'standup-wbs-list';
-      if (!ev.wbsState) ev.wbsState = {};
-
-      noteLines.forEach((line, idx) => {
-        const state = ev.wbsState[idx] || { done: false, highlight: false };
-        const li = document.createElement('li');
-        li.className = 'standup-wbs-item';
-        if (state.done)      li.classList.add('wbs-done');
-        if (state.highlight) li.classList.add('wbs-highlight');
-
-
-        const text = document.createElement('span');
-        text.className = 'wbs-text';
-        text.textContent = line;
-        li.appendChild(text);
-
-        if (!isLocked) {
-          const controls = document.createElement('span');
-          controls.className = 'wbs-controls';
-
-          // Highlight button
-          const hlBtn = document.createElement('button');
-          hlBtn.className = 'wbs-btn wbs-hl-btn' + (state.highlight ? ' active' : '');
-          hlBtn.title = 'Highlight';
-          hlBtn.innerHTML = '★';
-          hlBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            if (!ev.wbsState) ev.wbsState = {};
-            ev.wbsState[idx] = ev.wbsState[idx] || {};
-            ev.wbsState[idx].highlight = !ev.wbsState[idx].highlight;
-            ev.wbsState[idx].done = ev.wbsState[idx].done || false;
-            saveData();
-            renderStandupBody();
-          });
-
-          // Strike-through / done button
-          const doneBtn = document.createElement('button');
-          doneBtn.className = 'wbs-btn wbs-done-btn' + (state.done ? ' active' : '');
-          doneBtn.title = 'Mark complete';
-          doneBtn.innerHTML = '✓';
-          doneBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            if (!ev.wbsState) ev.wbsState = {};
-            ev.wbsState[idx] = ev.wbsState[idx] || {};
-            ev.wbsState[idx].done = !ev.wbsState[idx].done;
-            ev.wbsState[idx].highlight = ev.wbsState[idx].highlight || false;
-            saveData();
-            renderStandupBody();
-          });
-
-          controls.appendChild(hlBtn);
-          controls.appendChild(doneBtn);
-          li.appendChild(controls);
-        }
-
-        ul.appendChild(li);
-      });
-      bodyDiv.appendChild(ul);
-    } else {
-      const none = document.createElement('div');
-      none.className = 'standup-no-notes';
-      none.textContent = 'No work back schedule items yet.';
-      bodyDiv.appendChild(none);
-    }
 
     const internalWrap = document.createElement('div');
     internalWrap.className = 'standup-internal-notes';
@@ -3299,87 +3282,69 @@ function renderStandupBody() {
       return d;
     };
 
-    // ── Mission Control ────────────────────────────────────────
-    const jobWs = getJobByKey(ev.color);
-    const fqObj = getFiscalQuarter ? getFiscalQuarter(getEffectiveDate(ev)) : null;
-    if (fqObj) {
-      const mcKey = `${ev.color}_${fqObj.label.replace(' ','_')}`;
-      const mcVal = loadMC(mcKey);
-      if (mcVal) {
-        internalWrap.appendChild(sectionLabel('Mission Control'));
-        const mcLink = document.createElement('a');
-        mcLink.href = mcVal; mcLink.target = '_blank';
-        mcLink.style.cssText = 'font-size:12px;color:var(--accent);text-decoration:none;display:block;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-        mcLink.textContent = `${fqObj.label.replace(' ','')} ${jobWs.name} Mission Control`;
-        mcLink.addEventListener('mouseover',()=>mcLink.style.textDecoration='underline');
-        mcLink.addEventListener('mouseout',()=>mcLink.style.textDecoration='none');
-        internalWrap.appendChild(mcLink);
-        internalWrap.appendChild(sep());
-      }
-    }
-
-    // ── Pinned Docs ────────────────────────────────────────────
     const pmDocs = loadPmDocs(ev.id);
-    const pinnedList = Object.entries(pmDocs).filter(([k,v]) => v);
-    if (pinnedList.length > 0) {
-      internalWrap.appendChild(sectionLabel('Docs'));
-      const docWrap = document.createElement('div');
-      docWrap.style.cssText = 'display:flex;flex-direction:column;gap:3px;margin-top:4px;';
-      pinnedList.forEach(([key, url]) => {
-        const a = document.createElement('a');
-        a.href = url; a.target = '_blank';
-        a.style.cssText = 'font-size:12px;color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-        a.textContent = '↗ ' + key.replace(/_/g,' ');
-        a.addEventListener('mouseover',()=>a.style.textDecoration='underline');
-        a.addEventListener('mouseout',()=>a.style.textDecoration='none');
-        docWrap.appendChild(a);
-      });
-      internalWrap.appendChild(docWrap);
-      internalWrap.appendChild(sep());
-    }
 
-    // ── Brief + Naming Doc (per job) ───────────────────────────
-    const briefUrl = pmDocs['brief'];
-    const namingUrl = pmDocs['naming_doc'];
-    if (briefUrl || namingUrl) {
-      if (pinnedList.length === 0) internalWrap.appendChild(sectionLabel('Docs'));
-      const jobDocWrap = document.createElement('div');
-      jobDocWrap.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;';
-      if (briefUrl) {
-        const a = document.createElement('a');
-        a.href = briefUrl; a.target = '_blank';
-        a.style.cssText = 'font-size:11px;color:var(--accent);text-decoration:none;background:rgba(46,109,164,0.08);border-radius:5px;padding:2px 8px;';
-        a.textContent = '↗ Brief';
-        jobDocWrap.appendChild(a);
-      }
-      if (namingUrl) {
-        const a = document.createElement('a');
-        a.href = namingUrl; a.target = '_blank';
-        a.style.cssText = 'font-size:11px;color:var(--accent);text-decoration:none;background:rgba(46,109,164,0.08);border-radius:5px;padding:2px 8px;';
-        a.textContent = '↗ Naming Doc';
-        jobDocWrap.appendChild(a);
-      }
-      internalWrap.appendChild(jobDocWrap);
-      internalWrap.appendChild(sep());
-    }
-
-    // ── Creative Handoff ───────────────────────────────────────
+    // 1. ── Creative Handoff ────────────────────────────────────
     if (ev.creativeHandoff) {
       internalWrap.appendChild(sectionLabel('Creative Handoff'));
       internalWrap.appendChild(sectionText(ev.creativeHandoff));
       internalWrap.appendChild(sep());
     }
 
-    // ── Team ───────────────────────────────────────────────────
-    if (ev.pmTeam) {
-      internalWrap.appendChild(sectionLabel('Team'));
-      internalWrap.appendChild(sectionText(ev.pmTeam));
+    // 2. ── Work Back Schedule (WBS) — inline here ─────────────
+    const noteLines = (ev.notes || '').split('\n').map(l => l.trim()).filter(l => l);
+    if (noteLines.length > 0) {
+      internalWrap.appendChild(sectionLabel('Work Back Schedule'));
+      const wbsUl = document.createElement('ul');
+      wbsUl.className = 'standup-wbs-list';
+      wbsUl.style.marginTop = '4px';
+      if (!ev.wbsState) ev.wbsState = {};
+      noteLines.forEach((line, idx) => {
+        const state = ev.wbsState[idx] || { done: false, highlight: false };
+        const li = document.createElement('li');
+        li.className = 'standup-wbs-item';
+        if (state.done)      li.classList.add('wbs-done');
+        if (state.highlight) li.classList.add('wbs-highlight');
+        const text = document.createElement('span');
+        text.className = 'wbs-text';
+        text.innerHTML = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        li.appendChild(text);
+        if (!isLocked) {
+          const controls = document.createElement('span');
+          controls.className = 'wbs-controls';
+          const hlBtn = document.createElement('button');
+          hlBtn.className = 'wbs-btn wbs-hl-btn' + (state.highlight ? ' active' : '');
+          hlBtn.title = 'Highlight'; hlBtn.innerHTML = '★';
+          hlBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            if (!ev.wbsState) ev.wbsState = {};
+            ev.wbsState[idx] = ev.wbsState[idx] || {};
+            ev.wbsState[idx].highlight = !ev.wbsState[idx].highlight;
+            ev.wbsState[idx].done = ev.wbsState[idx].done || false;
+            saveData(); renderStandupBody();
+          });
+          const doneBtn = document.createElement('button');
+          doneBtn.className = 'wbs-btn wbs-done-btn' + (state.done ? ' active' : '');
+          doneBtn.title = 'Mark complete'; doneBtn.innerHTML = '✓';
+          doneBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            if (!ev.wbsState) ev.wbsState = {};
+            ev.wbsState[idx] = ev.wbsState[idx] || {};
+            ev.wbsState[idx].done = !ev.wbsState[idx].done;
+            ev.wbsState[idx].highlight = ev.wbsState[idx].highlight || false;
+            saveData(); renderStandupBody();
+          });
+          controls.appendChild(hlBtn);
+          controls.appendChild(doneBtn);
+          li.appendChild(controls);
+        }
+        wbsUl.appendChild(li);
+      });
+      internalWrap.appendChild(wbsUl);
       internalWrap.appendChild(sep());
     }
 
-    // ── WBS renders in bodyDiv below (existing code) ──────────
-
-    // ── Daily Status Log — most recent entry ──────────────────
+    // 3. ── Status — most recent PM log entry ──────────────────
     const pmEntries = loadPmData(ev.id);
     if (pmEntries.length > 0) {
       const latest = pmEntries[0];
@@ -3389,16 +3354,46 @@ function renderStandupBody() {
       const statusDate = document.createElement('span');
       statusDate.style.cssText = 'font-size:10px;color:var(--accent);font-family:"JetBrains Mono",monospace;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:1px;';
       statusDate.textContent = latest.date;
-      const statusText = document.createElement('span');
-      statusText.style.cssText = 'font-size:12px;color:var(--text);line-height:1.5;';
-      statusText.textContent = latest.text;
+      const statusTxt = document.createElement('span');
+      statusTxt.style.cssText = 'font-size:12px;color:var(--text);line-height:1.5;';
+      statusTxt.textContent = latest.text;
       statusEntry.appendChild(statusDate);
-      statusEntry.appendChild(statusText);
+      statusEntry.appendChild(statusTxt);
       internalWrap.appendChild(statusEntry);
       internalWrap.appendChild(sep());
     }
 
-    // ── Notes (standup scratch) ────────────────────────────────
+    // 4. ── Brief ───────────────────────────────────────────────
+    // 5. ── Naming Doc ──────────────────────────────────────────
+    const briefUrl = pmDocs['brief'];
+    const namingUrl = pmDocs['naming_doc'];
+    if (briefUrl) {
+      internalWrap.appendChild(sectionLabel('Brief'));
+      const a = document.createElement('a');
+      a.href = briefUrl; a.target = '_blank';
+      a.style.cssText = 'font-size:12px;color:var(--accent);text-decoration:none;display:block;margin-top:4px;';
+      a.textContent = '↗ Open Brief';
+      internalWrap.appendChild(a);
+      internalWrap.appendChild(sep());
+    }
+    if (namingUrl) {
+      internalWrap.appendChild(sectionLabel('Naming Doc'));
+      const a = document.createElement('a');
+      a.href = namingUrl; a.target = '_blank';
+      a.style.cssText = 'font-size:12px;color:var(--accent);text-decoration:none;display:block;margin-top:4px;';
+      a.textContent = '↗ Open Naming Doc';
+      internalWrap.appendChild(a);
+      internalWrap.appendChild(sep());
+    }
+
+    // 6. ── Team ────────────────────────────────────────────────
+    if (ev.pmTeam) {
+      internalWrap.appendChild(sectionLabel('Team'));
+      internalWrap.appendChild(sectionText(ev.pmTeam));
+      internalWrap.appendChild(sep());
+    }
+
+    // 7. ── Notes (standup scratch) ─────────────────────────────
     internalWrap.appendChild(sectionLabel('Notes'));
 
     // Normalise internalNotes to array (supports legacy string format)
