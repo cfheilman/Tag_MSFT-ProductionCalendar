@@ -1909,9 +1909,23 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     const weekSlotMap = {};
     weekEvents.forEach(ev => { weekSlotMap[ev.id] = globalSlotMap[ev.id] || 0; });
 
-    const maxSlot = weekEvents.length > 0
-      ? Math.max(...weekEvents.map(ev => weekSlotMap[ev.id]))
-      : -1;
+    // Repack slots per day — compress globalSlotMap so active jobs on each day
+    // fill from slot 0 upward with no gaps, preserving workstream order
+    const daySlotRemaps = {}; // date -> {oldSlot -> newSlot}
+    weekDays.forEach(dayObj => {
+      const dow = new Date(dayObj.date + 'T12:00:00').getDay();
+      const activeToday = weekEvents
+        .filter(ev => {
+          if (ev.start > dayObj.date || ev.end < dayObj.date) return false;
+          if (ev.weekdaysOnly && (dow === 0 || dow === 6)) return false;
+          if (ev.skipHolidays && getHolidaysOnDate(dayObj.date).length > 0) return false;
+          return true;
+        })
+        .sort((a,b) => (weekSlotMap[a.id]??0) - (weekSlotMap[b.id]??0));
+      const remap = {};
+      activeToday.forEach((ev, i) => { remap[weekSlotMap[ev.id]??0] = i; });
+      daySlotRemaps[dayObj.date] = remap;
+    });
 
     const cellHeight = twoWeekView ? 340 : 185;
     weekEl.style.height = cellHeight + 'px';
@@ -2029,7 +2043,16 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
 
       if (!jobInThisWeek && !slaInThisWeek) return;
 
-      const slot = weekSlotMap[ev.id];
+      const rawSlot = weekSlotMap[ev.id];
+      // Use the remap from the first day this event is active in the week
+      const firstActiveDay = weekDays.find(d => {
+        if (ev.start > d.date || ev.end < d.date) return false;
+        const dow2 = new Date(d.date + 'T12:00:00').getDay();
+        if (ev.weekdaysOnly && (dow2 === 0 || dow2 === 6)) return false;
+        return true;
+      });
+      const remap = firstActiveDay ? (daySlotRemaps[firstActiveDay.date] || {}) : {};
+      const slot = remap[rawSlot] !== undefined ? remap[rawSlot] : rawSlot;
       const top  = slot * (BAR_H + BAR_GAP);
       // Hide bars that exceed the visible slot limit — shown via overflow popup instead
       if (slot >= MAX_VISIBLE_SLOTS) return;
@@ -2285,15 +2308,17 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     // Overflow indicators — run AFTER cells are built and in DOM
     weekDays.forEach((dayObj, di) => {
       const dayEventsOverflow = weekEvents.filter(ev => {
-        const slot = weekSlotMap[ev.id] ?? 0;
-        if (slot < MAX_VISIBLE_SLOTS) return false;
         if (ev.start > dayObj.date || ev.end < dayObj.date) return false;
         if (ev.color === 'charcoal') return false;
         const d = new Date(dayObj.date + 'T12:00:00');
         const dow = d.getDay();
         if (ev.weekdaysOnly && (dow === 0 || dow === 6)) return false;
         if (ev.skipHolidays && getHolidaysOnDate(dayObj.date).length > 0) return false;
-        return true;
+        // Use remapped slot for this day
+        const rawSlot = weekSlotMap[ev.id] ?? 0;
+        const remap = daySlotRemaps[dayObj.date] || {};
+        const slot = remap[rawSlot] !== undefined ? remap[rawSlot] : rawSlot;
+        return slot >= MAX_VISIBLE_SLOTS;
       });
       if (dayEventsOverflow.length === 0) return;
 
