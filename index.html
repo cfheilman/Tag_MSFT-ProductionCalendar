@@ -2698,6 +2698,40 @@ function renderStandupBody() {
     wsHeader.appendChild(wsTitle);
     wsSection.appendChild(wsHeader);
 
+    // ── Mission Control + Pinned Docs (from jobRegistry, per current quarter) ──
+    const now = new Date();
+    const m = now.getMonth()+1, y = now.getFullYear();
+    let fq, fy;
+    if (m>=7){fy=y+1; fq=m<=9?1:2;} else {fy=y; fq=m<=3?3:4;}
+    const qLabel = `FY${String(fy).slice(2)} Q${fq}`;
+    const mcKey = `${standupFilter}_${qLabel.replace(' ','_')}`;
+    const mcVal = loadMC(mcKey);
+
+    // Pinned docs from jobRegistry
+    const wsReg = jobRegistry.find(j=>j.key===standupFilter);
+    const pinnedKey = `${standupFilter}_${qLabel.replace(' ','_')}`;
+    const pinnedDocs = (wsReg && wsReg.pinnedDocs && wsReg.pinnedDocs[pinnedKey]) || [];
+
+    if (mcVal || pinnedDocs.length > 0) {
+      const linksWrap = document.createElement('div');
+      linksWrap.style.cssText = 'padding:8px 16px 4px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);';
+      if (mcVal) {
+        const mcChip = document.createElement('a');
+        mcChip.href = mcVal; mcChip.target = '_blank';
+        mcChip.style.cssText = `display:inline-flex;align-items:center;gap:4px;background:${job.hex}18;border:1px solid ${job.hex}44;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;color:${job.hex};text-decoration:none;`;
+        mcChip.textContent = `↗ ${qLabel} Mission Control`;
+        linksWrap.appendChild(mcChip);
+      }
+      pinnedDocs.forEach(doc => {
+        const chip = document.createElement('a');
+        chip.href = doc.url; chip.target = '_blank';
+        chip.style.cssText = `display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,0.04);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--text);text-decoration:none;`;
+        chip.textContent = `↗ ${doc.name}`;
+        linksWrap.appendChild(chip);
+      });
+      wsSection.appendChild(linksWrap);
+    }
+
     if (wsNotes.length > 0) {
       const wsList = document.createElement('ul');
       wsList.className = 'standup-general-list';
@@ -3152,6 +3186,11 @@ function renderStandupBody() {
     bodyDiv.className = 'standup-job-body';
     const noteLines = (ev.notes || '').split('\n').map(l => l.trim()).filter(l => l);
     if (noteLines.length > 0) {
+      const wbsLabel = document.createElement('div');
+      wbsLabel.className = 'standup-internal-label';
+      wbsLabel.style.cssText = 'padding:8px 16px 4px;';
+      wbsLabel.textContent = 'Work Back Schedule';
+      bodyDiv.appendChild(wbsLabel);
       const ul = document.createElement('ul');
       ul.className = 'standup-wbs-list';
       if (!ev.wbsState) ev.wbsState = {};
@@ -3278,6 +3317,31 @@ function renderStandupBody() {
       internalWrap.appendChild(sep());
     }
 
+    // ── Brief + Naming Doc (per job) ───────────────────────────
+    const briefUrl = pmDocs['brief'];
+    const namingUrl = pmDocs['naming_doc'];
+    if (briefUrl || namingUrl) {
+      if (pinnedList.length === 0) internalWrap.appendChild(sectionLabel('Docs'));
+      const jobDocWrap = document.createElement('div');
+      jobDocWrap.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;';
+      if (briefUrl) {
+        const a = document.createElement('a');
+        a.href = briefUrl; a.target = '_blank';
+        a.style.cssText = 'font-size:11px;color:var(--accent);text-decoration:none;background:rgba(46,109,164,0.08);border-radius:5px;padding:2px 8px;';
+        a.textContent = '↗ Brief';
+        jobDocWrap.appendChild(a);
+      }
+      if (namingUrl) {
+        const a = document.createElement('a');
+        a.href = namingUrl; a.target = '_blank';
+        a.style.cssText = 'font-size:11px;color:var(--accent);text-decoration:none;background:rgba(46,109,164,0.08);border-radius:5px;padding:2px 8px;';
+        a.textContent = '↗ Naming Doc';
+        jobDocWrap.appendChild(a);
+      }
+      internalWrap.appendChild(jobDocWrap);
+      internalWrap.appendChild(sep());
+    }
+
     // ── Creative Handoff ───────────────────────────────────────
     if (ev.creativeHandoff) {
       internalWrap.appendChild(sectionLabel('Creative Handoff'));
@@ -3292,8 +3356,7 @@ function renderStandupBody() {
       internalWrap.appendChild(sep());
     }
 
-    // ── WBS / Notes ────────────────────────────────────────────
-    // (rendered below via existing WBS code — keep internalWrap reference)
+    // ── WBS renders in bodyDiv below (existing code) ──────────
 
     // ── Daily Status Log — most recent entry ──────────────────
     const pmEntries = loadPmData(ev.id);
@@ -4854,8 +4917,8 @@ function renderPMJob(ev,hex,group,statusCycle){
   const docSec=document.createElement('div');
   const docLbl=document.createElement('div');docLbl.className='pm-section-label';docLbl.textContent='Documents';
   docSec.appendChild(docLbl);
-  // Brief/Naming Doc removed — use Pinned Docs instead
-  [].forEach(docType=>{
+  // ── Brief + Naming Doc per job ─────────────────────────
+  ['Brief','Naming Doc'].forEach(docType=>{
     const key=docType.toLowerCase().replace(/ /g,'_');
     const row=document.createElement('div');row.className='pm-doc-row';
     const lbl=document.createElement('span');lbl.className='pm-doc-label';lbl.textContent=docType+':';row.appendChild(lbl);
