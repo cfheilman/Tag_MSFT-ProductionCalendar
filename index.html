@@ -1915,8 +1915,12 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       const aPreWeek = a.start < weekStart ? 0 : 1;
       const bPreWeek = b.start < weekStart ? 0 : 1;
       if (aPreWeek !== bPreWeek) return aPreWeek - bPreWeek;
-      // Among same priority: sort by start date then workstream
+      // Among same priority: sort by start date
       if (a.start !== b.start) return a.start.localeCompare(b.start);
+      // Same start date: shorter jobs first (long bridge jobs sink to bottom)
+      const aDur = new Date(a.end) - new Date(a.start);
+      const bDur = new Date(b.end) - new Date(b.start);
+      if (aDur !== bDur) return aDur - bDur;
       return (wsOrd[a.color]??50) - (wsOrd[b.color]??50);
     });
 
