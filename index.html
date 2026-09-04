@@ -2350,14 +2350,6 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         const displayRow = dayDisplayRow[dayObj.date]?.[ev.id] ?? (weekSlotMap[ev.id] ?? 0);
         return displayRow >= MAX_VISIBLE_SLOTS;
       });
-      // DEBUG
-      if (dayObj.date === '2026-09-26') {
-        console.log('[DEBUG Sep26] di='+di+' overflow='+dayEventsOverflow.length+' MAX='+MAX_VISIBLE_SLOTS);
-        console.log('[DEBUG Sep26] dayDisplayRow:', JSON.stringify(dayDisplayRow[dayObj.date]));
-        console.log('[DEBUG Sep26] weekEvents on this day:', weekEvents.filter(e=>e.start<=dayObj.date&&e.end>=dayObj.date).map(e=>e.name+' slot='+weekSlotMap[e.id]));
-        const mc = weekEl.querySelectorAll('.day-cell')[di];
-        console.log('[DEBUG Sep26] moreCell found:', !!mc);
-      }
       if (dayEventsOverflow.length === 0) return;
 
         const allForDay = weekEvents.filter(ev => {
