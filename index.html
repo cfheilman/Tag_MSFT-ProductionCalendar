@@ -2356,6 +2356,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
 
     // Overflow indicators — run AFTER cells are built and in DOM
     weekDays.forEach((dayObj, di) => {
+      // Count jobs that have no visible bar on this day (slot >= MAX but active)
       const dayEventsOverflow = weekEvents.filter(ev => {
         if (ev.start > dayObj.date || ev.end < dayObj.date) return false;
         if (ev.color === 'charcoal') return false;
@@ -2363,8 +2364,8 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         const dow = d.getDay();
         if (ev.weekdaysOnly && (dow === 0 || dow === 6)) return false;
         if (ev.skipHolidays && getHolidaysOnDate(dayObj.date).length > 0) return false;
-        const displayRow = dayDisplayRow[dayObj.date]?.[ev.id] ?? (weekSlotMap[ev.id] ?? 0);
-        return displayRow >= MAX_VISIBLE_SLOTS;
+        // Job has no visible bar if its weekSlotMap slot >= MAX
+        return (weekSlotMap[ev.id] ?? 0) >= MAX_VISIBLE_SLOTS;
       });
       if (dayEventsOverflow.length === 0) return;
 
