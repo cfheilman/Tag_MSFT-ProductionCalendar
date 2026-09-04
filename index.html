@@ -2074,20 +2074,9 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       if (!jobInThisWeek && !slaInThisWeek) return;
 
       const rawSlot = weekSlotMap[ev.id] ?? 0;
-      // Use the minimum display row this bar gets across all its active days in the week
-      // This ensures bars render at the lowest possible row without gaps
-      const minDisplayRow = Math.min(...weekDays
-        .filter(d => {
-          if (ev.start > d.date || ev.end < d.date) return false;
-          const dow2 = new Date(d.date + 'T12:00:00').getDay();
-          if (ev.weekdaysOnly && (dow2 === 0 || dow2 === 6)) return false;
-          return true;
-        })
-        .map(d => (dayDisplayRow[d.date]?.[ev.id] ?? rawSlot))
-      );
-      if (minDisplayRow >= MAX_VISIBLE_SLOTS) return;
-      const slot = minDisplayRow;
+      const slot = rawSlot;
       const top  = slot * (BAR_H + BAR_GAP);
+      if (slot >= MAX_VISIBLE_SLOTS) return;
       const segStart = ev.start < weekStart ? weekStart : ev.start;
       const segEnd   = ev.end   > weekEnd   ? weekEnd   : ev.end;
 
