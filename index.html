@@ -2078,6 +2078,9 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     const colW = 100 / 7; // percent
 
     // Draw each event that overlaps this week
+    if (weekStart === '2026-09-20') {
+      console.log('[DEBUG week Sep20] weekEvents:', weekEvents.map(e=>({id:e.id,name:e.name,start:e.start,end:e.end,slot:weekSlotMap[e.id]})));
+    }
     weekEvents.forEach(ev => {
       const jobInThisWeek = ev.end >= weekStart && ev.start <= weekEnd;
       const slaInThisWeek = ev.liveDate && ev.liveDate > ev.end &&
