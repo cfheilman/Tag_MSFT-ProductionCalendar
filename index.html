@@ -2101,23 +2101,10 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       if (!jobInThisWeek && !slaInThisWeek) return;
 
       const rawSlot = weekSlotMap[ev.id] ?? 0;
-      // On days where this bar's weekSlot is >= MAX but dayDisplayRow is < MAX
-      // (e.g. weekend days where weekdaysOnly competitors are absent),
-      // we still render — the bar segments handle per-column positioning via top offset
       const slot = rawSlot;
       const top  = slot * (BAR_H + BAR_GAP);
-      // Check if this bar is visible on at least one day this week via dayDisplayRow
-      const visibleOnAnyDay = weekDays.some(d => {
-        const dr = dayDisplayRow[d.date]?.[ev.id];
-        return dr !== undefined && dr < MAX_VISIBLE_SLOTS;
-      });
-      if (slot >= MAX_VISIBLE_SLOTS && !visibleOnAnyDay) return;
-      // If bar is only visible via dayDisplayRow (slot >= MAX), use dayDisplayRow position
-      const effectiveTop = slot < MAX_VISIBLE_SLOTS ? top :
-        (() => {
-          const bestDay = weekDays.find(d => (dayDisplayRow[d.date]?.[ev.id] ?? MAX_VISIBLE_SLOTS) < MAX_VISIBLE_SLOTS);
-          return bestDay ? (dayDisplayRow[bestDay.date][ev.id]) * (BAR_H + BAR_GAP) : top;
-        })();
+      const effectiveTop = top;
+      if (slot >= MAX_VISIBLE_SLOTS) return;
       const segStart = ev.start < weekStart ? weekStart : ev.start;
       const segEnd   = ev.end   > weekEnd   ? weekEnd   : ev.end;
 
@@ -2189,7 +2176,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         }
         bar.style.left   = `calc(${leftPct}% + 3px)`;
         bar.style.width  = `calc(${widthPct}% - 6px)`;
-        bar.style.top    = effectiveTop + 'px';
+        bar.style.top    = top + 'px';
         bar.style.height = BAR_H + 'px'; bar.style.lineHeight = BAR_H + 'px';
 
         // Show label on the first segment of every week this event appears in
@@ -2240,7 +2227,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
           capEl.className = 'date-cap';
           capEl.style.left      = `calc(${capCol * colW}% + 3px)`;
           capEl.style.width     = `${colW}%`;
-          capEl.style.top       = effectiveTop + 'px';
+          capEl.style.top       = top + 'px';
           capEl.style.height    = BAR_H + 'px';
           capEl.style.background = cap.color;
           capEl.style.display   = 'flex';
@@ -2330,7 +2317,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
             liveCapEl.className = 'date-cap';
             liveCapEl.style.left      = `calc(${liveDateCol * colW}% + 3px)`;
             liveCapEl.style.width     = `${colW}%`;
-            liveCapEl.style.top       = effectiveTop + 'px';
+            liveCapEl.style.top       = top + 'px';
             liveCapEl.style.height    = BAR_H + 'px';
             liveCapEl.style.background = '#B71C1C';
             liveCapEl.style.display   = 'flex';
