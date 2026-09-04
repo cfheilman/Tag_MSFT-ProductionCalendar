@@ -2368,7 +2368,8 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       if (!moreCell) return;
 
       const moreEl = document.createElement('div');
-      moreEl.style.cssText = `position:absolute;left:3px;right:3px;bottom:2px;font-size:9px;font-weight:700;color:var(--accent);text-align:center;padding:1px 3px;border-radius:3px;background:rgba(46,109,164,0.1);cursor:pointer;z-index:25;`;
+      const moreTop = DAY_NUM_H + MAX_VISIBLE_SLOTS * (BAR_H + BAR_GAP) + 2;
+      moreEl.style.cssText = `position:absolute;left:3px;right:3px;top:${moreTop}px;font-size:9px;font-weight:700;color:var(--accent);text-align:center;padding:1px 3px;border-radius:3px;background:rgba(46,109,164,0.1);cursor:pointer;z-index:25;`;
       moreEl.textContent = `+${dayEventsOverflow.length} more`;
       moreEl.addEventListener('click', e => {
         e.stopPropagation();
