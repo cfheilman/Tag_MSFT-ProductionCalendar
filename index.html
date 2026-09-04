@@ -1903,11 +1903,44 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       return ev.end >= weekStart && ev.start <= weekEnd;
     });
 
-    // Use global slot map — no per-week reassignment
+    // Per-week slot assignment — mirrors Google Calendar "first come first served"
+    // Jobs active at week start get slots first, then jobs starting mid-week fill gaps
     const weekSlotMap = {};
-    weekEvents.forEach(ev => { weekSlotMap[ev.id] = globalSlotMap[ev.id] || 0; });
+    const weekOccupied = []; // slot -> [evId, ...]
 
-    // Per-day display row map: compact active jobs into rows 0,1,2... by global slot order
+    // Sort: jobs active at/before week start first (by start date), then workstream order
+    const wsOrd = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
+    const weekEventsSorted = [...weekEvents].sort((a, b) => {
+      // Jobs already running before this week get priority
+      const aPreWeek = a.start < weekStart ? 0 : 1;
+      const bPreWeek = b.start < weekStart ? 0 : 1;
+      if (aPreWeek !== bPreWeek) return aPreWeek - bPreWeek;
+      // Among same priority: sort by start date then workstream
+      if (a.start !== b.start) return a.start.localeCompare(b.start);
+      return (wsOrd[a.color]??50) - (wsOrd[b.color]??50);
+    });
+
+    weekEventsSorted.forEach(ev => {
+      // Find lowest available slot not conflicting with any other event in this week
+      let slot = 0;
+      while (true) {
+        const occupants = weekOccupied[slot] || [];
+        const conflicts = occupants.some(otherId => {
+          const other = weekEvents.find(e => e.id === otherId);
+          if (!other) return false;
+          return ev.start <= other.end && ev.end >= other.start;
+        });
+        if (!conflicts) break;
+        slot++;
+      }
+      weekSlotMap[ev.id] = slot;
+      if (!weekOccupied[slot]) weekOccupied[slot] = [];
+      weekOccupied[slot].push(ev.id);
+      // Also update globalSlotMap so popup uses correct order
+      if (globalSlotMap[ev.id] === undefined) globalSlotMap[ev.id] = slot;
+    });
+
+    // Per-day display row map: compact active jobs into rows 0,1,2... by week slot order
     const dayDisplayRow = {}; // {date: {evId: displayRow}}
     weekDays.forEach(dayObj => {
       const dow = new Date(dayObj.date + 'T12:00:00').getDay();
