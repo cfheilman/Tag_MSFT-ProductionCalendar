@@ -1910,7 +1910,15 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
 
     // Sort: jobs active at/before week start first (by start date), then workstream order
     const wsOrd = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
+    // These jobs always get the highest slots (pushed to overflow/last row)
+    const DEPRIORITIZED = ['EXCEL MSA', 'Anthem + Excel - UK', 'CoWork + WorkIQ - UK'];
+    const isDeprioritized = ev => DEPRIORITIZED.some(n => ev.name.includes(n));
+
     const weekEventsSorted = [...weekEvents].sort((a, b) => {
+      // Deprioritized bridge jobs always go last
+      const ad = isDeprioritized(a) ? 1 : 0;
+      const bd = isDeprioritized(b) ? 1 : 0;
+      if (ad !== bd) return ad - bd;
       // Pre-week jobs get priority (first come first served)
       const aPreWeek = a.start < weekStart ? 0 : 1;
       const bPreWeek = b.start < weekStart ? 0 : 1;
