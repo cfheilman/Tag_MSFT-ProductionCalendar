@@ -1940,7 +1940,23 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         const conflicts = occupants.some(otherId => {
           const other = weekEvents.find(e => e.id === otherId);
           if (!other) return false;
-          return ev.start <= other.end && ev.end >= other.start;
+          if (ev.start > other.end || ev.end < other.start) return false;
+          // If both overlap in date range, check if they actually share any visible day
+          // weekdaysOnly jobs don't conflict with non-weekdaysOnly jobs on weekend-only overlap
+          if (ev.weekdaysOnly || other.weekdaysOnly) {
+            // Check if they share any weekday
+            let d = new Date(Math.max(new Date(ev.start), new Date(other.start)));
+            const end = new Date(Math.min(new Date(ev.end), new Date(other.end)));
+            while (d <= end) {
+              const dow = d.getDay();
+              const evActive = !ev.weekdaysOnly || (dow !== 0 && dow !== 6);
+              const otherActive = !other.weekdaysOnly || (dow !== 0 && dow !== 6);
+              if (evActive && otherActive) return true;
+              d.setDate(d.getDate() + 1);
+            }
+            return false;
+          }
+          return true;
         });
         if (!conflicts) break;
         slot++;
@@ -1948,7 +1964,6 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       weekSlotMap[ev.id] = slot;
       if (!weekOccupied[slot]) weekOccupied[slot] = [];
       weekOccupied[slot].push(ev.id);
-      // Also update globalSlotMap so popup uses correct order
       if (globalSlotMap[ev.id] === undefined) globalSlotMap[ev.id] = slot;
     });
 
@@ -2078,9 +2093,6 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     const colW = 100 / 7; // percent
 
     // Draw each event that overlaps this week
-    if (weekStart === '2026-09-20') {
-      console.log('[DEBUG week Sep20] weekEvents:', weekEvents.map(e=>({id:e.id,name:e.name,start:e.start,end:e.end,slot:weekSlotMap[e.id]})));
-    }
     weekEvents.forEach(ev => {
       const jobInThisWeek = ev.end >= weekStart && ev.start <= weekEnd;
       const slaInThisWeek = ev.liveDate && ev.liveDate > ev.end &&
@@ -2089,9 +2101,23 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       if (!jobInThisWeek && !slaInThisWeek) return;
 
       const rawSlot = weekSlotMap[ev.id] ?? 0;
+      // On days where this bar's weekSlot is >= MAX but dayDisplayRow is < MAX
+      // (e.g. weekend days where weekdaysOnly competitors are absent),
+      // we still render — the bar segments handle per-column positioning via top offset
       const slot = rawSlot;
       const top  = slot * (BAR_H + BAR_GAP);
-      if (slot >= MAX_VISIBLE_SLOTS) return;
+      // Check if this bar is visible on at least one day this week via dayDisplayRow
+      const visibleOnAnyDay = weekDays.some(d => {
+        const dr = dayDisplayRow[d.date]?.[ev.id];
+        return dr !== undefined && dr < MAX_VISIBLE_SLOTS;
+      });
+      if (slot >= MAX_VISIBLE_SLOTS && !visibleOnAnyDay) return;
+      // If bar is only visible via dayDisplayRow (slot >= MAX), use dayDisplayRow position
+      const effectiveTop = slot < MAX_VISIBLE_SLOTS ? top :
+        (() => {
+          const bestDay = weekDays.find(d => (dayDisplayRow[d.date]?.[ev.id] ?? MAX_VISIBLE_SLOTS) < MAX_VISIBLE_SLOTS);
+          return bestDay ? (dayDisplayRow[bestDay.date][ev.id]) * (BAR_H + BAR_GAP) : top;
+        })();
       const segStart = ev.start < weekStart ? weekStart : ev.start;
       const segEnd   = ev.end   > weekEnd   ? weekEnd   : ev.end;
 
@@ -2163,7 +2189,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         }
         bar.style.left   = `calc(${leftPct}% + 3px)`;
         bar.style.width  = `calc(${widthPct}% - 6px)`;
-        bar.style.top    = top + 'px';
+        bar.style.top    = effectiveTop + 'px';
         bar.style.height = BAR_H + 'px'; bar.style.lineHeight = BAR_H + 'px';
 
         // Show label on the first segment of every week this event appears in
@@ -2214,7 +2240,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
           capEl.className = 'date-cap';
           capEl.style.left      = `calc(${capCol * colW}% + 3px)`;
           capEl.style.width     = `${colW}%`;
-          capEl.style.top       = top + 'px';
+          capEl.style.top       = effectiveTop + 'px';
           capEl.style.height    = BAR_H + 'px';
           capEl.style.background = cap.color;
           capEl.style.display   = 'flex';
@@ -2304,7 +2330,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
             liveCapEl.className = 'date-cap';
             liveCapEl.style.left      = `calc(${liveDateCol * colW}% + 3px)`;
             liveCapEl.style.width     = `${colW}%`;
-            liveCapEl.style.top       = top + 'px';
+            liveCapEl.style.top       = effectiveTop + 'px';
             liveCapEl.style.height    = BAR_H + 'px';
             liveCapEl.style.background = '#B71C1C';
             liveCapEl.style.display   = 'flex';
