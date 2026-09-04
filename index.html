@@ -1911,19 +1911,17 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     // Sort: jobs active at/before week start first (by start date), then workstream order
     const wsOrd = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
     const weekEventsSorted = [...weekEvents].sort((a, b) => {
-      // Jobs already running before this week get priority
+      // Pre-week jobs get priority (first come first served)
       const aPreWeek = a.start < weekStart ? 0 : 1;
       const bPreWeek = b.start < weekStart ? 0 : 1;
       if (aPreWeek !== bPreWeek) return aPreWeek - bPreWeek;
-      // Among same priority: workstream first (Windows before M365), then start date
+      // Same group: sort by start date
+      if (a.start !== b.start) return a.start.localeCompare(b.start);
+      // Tiebreaker only: workstream then shorter duration
       const aOrd = wsOrd[a.color] ?? 50;
       const bOrd = wsOrd[b.color] ?? 50;
       if (aOrd !== bOrd) return aOrd - bOrd;
-      if (a.start !== b.start) return a.start.localeCompare(b.start);
-      // Shorter jobs first within same workstream+start
-      const aDur = new Date(a.end) - new Date(a.start);
-      const bDur = new Date(b.end) - new Date(b.start);
-      return aDur - bDur;
+      return (new Date(a.end) - new Date(a.start)) - (new Date(b.end) - new Date(b.start));
     });
 
     weekEventsSorted.forEach(ev => {
