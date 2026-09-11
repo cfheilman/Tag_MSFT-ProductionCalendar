@@ -206,6 +206,36 @@
   }
   .filter-item.dimmed { opacity: 0.22; }
 
+  /* Job-level dropdown */
+  .filter-chevron {
+    font-size: 8px; opacity: 0.45; margin-left: 3px; cursor: pointer;
+    padding: 0 2px; border-radius: 3px; line-height: 1; vertical-align: middle;
+    transition: opacity 0.15s;
+  }
+  .filter-chevron:hover { opacity: 1; }
+  .filter-chevron.open { opacity: 1; }
+  .job-dropdown {
+    position: fixed; z-index: 300;
+    background: #16162A; border: 1px solid #2A2A44; border-radius: 10px;
+    padding: 6px 4px; min-width: 190px; max-height: 260px; overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    font-family: 'Segoe UI', sans-serif;
+  }
+  .job-dropdown-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 10px; border-radius: 6px; cursor: pointer;
+    font-size: 11px; color: #B0B0D0; transition: background 0.1s;
+    user-select: none;
+  }
+  .job-dropdown-item:hover { background: rgba(255,255,255,0.07); color: #E0E0FF; }
+  .job-dropdown-item input[type=checkbox] {
+    width: 12px; height: 12px; accent-color: #6080D0;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .job-dropdown-divider {
+    height: 1px; background: #2A2A44; margin: 4px 8px;
+  }
+
   /* ── VIEW-ONLY / STATS ───────────────────────────────────────── */
   .view-only-banner {
     display: none; background: #0F0F18; color: #40405A;
@@ -2451,12 +2481,15 @@ function render() {
     })
     .sort((a,b) => daysBetween(b.start,b.end) - daysBetween(a.start,a.end));
 
-  // Filtered events for rendering (respects activeFilter)
-  const visibleEvents = allRangeEvents.filter(ev => !activeFilter || ev.color === activeFilter);
+  // Filtered events for rendering (respects activeFilter and activeJobFilter)
+  const visibleEvents = allRangeEvents.filter(ev => {
+    if (activeJobFilter.size > 0) return activeJobFilter.has(ev.id);
+    if (activeFilter) return ev.color === activeFilter;
+    return true;
+  });
 
   // Assign slots — when filter active use only visible events so they pack into top rows
-  // When no filter use all events so slots stay stable when toggling filters
-  const eventsForSlots = activeFilter ? visibleEvents : allRangeEvents;
+  const eventsForSlots = (activeFilter || activeJobFilter.size > 0) ? visibleEvents : allRangeEvents;
 
   globalSlotMap = {}; // eventId -> slot (consistent across all weeks)
   const globalSlotOccupied = []; // slot -> array of [effectiveStart, effectiveEnd]
@@ -3818,18 +3851,181 @@ document.getElementById('new-job-add-btn').addEventListener('click', () => {
   }
 });
 
+// Abbreviate job name to subtheme for dropdown
+function abbreviateJob(name) {
+  // Extract meaningful subtheme keywords
+  const patterns = [
+    [/Creator Video.*LF.*#?(\d+)/i, m => `Creator LF${m[1]?` #${m[1]}`:''}` ],
+    [/Creator Video.*UF/i,          () => 'Creator UF'],
+    [/Creator Video/i,              () => 'Creator Video'],
+    [/Batch 0?1.*ANTHEM.*SOCIAL/i,  () => 'B01 Anthem Social'],
+    [/Batch 0?1.*EXCEL.*SOCIAL/i,   () => 'B01 Excel Social'],
+    [/Batch 0?1.*EXCEL.*MSA/i,      () => 'B01 Excel MSA'],
+    [/Batch 0?1.*ANTHEM/i,          () => 'B01 Anthem'],
+    [/Batch 0?1.*EXCEL/i,           () => 'B01 Excel'],
+    [/Batch 0?1.*SOCIAL/i,          () => 'B01 Social'],
+    [/Batch 0?1.*PRODUCT.*#?(\d*)/i,m => `B01 Product${m[1]?` #${m[1]}`:''}` ],
+    [/Batch 0?1.*ANTHEM.*UF/i,      () => 'B01 Anthem UF'],
+    [/Batch 0?2.*COWORK.*SOCIAL/i,  () => 'B02 CoWork Social'],
+    [/Batch 0?2.*WORKIQ.*SOCIAL/i,  () => 'B02 WorkIQ Social'],
+    [/Batch 0?2.*COWORK/i,          () => 'B02 CoWork'],
+    [/Batch 0?2.*WORKIQ/i,          () => 'B02 WorkIQ'],
+    [/Batch 0?2.*SOCIAL/i,          () => 'B02 Social'],
+    [/Batch 0?2.*PRODUCT.*#?(\d*)/i,m => `B02 Product${m[1]?` #${m[1]}`:''}` ],
+    [/Anthem.*Excel.*UK/i,          () => 'UK Anthem+Excel'],
+    [/CoWork.*WorkIQ.*UK/i,         () => 'UK CoWork+WorkIQ'],
+    [/Anthem.*Excel/i,              () => 'Anthem+Excel'],
+    [/CoWork.*WorkIQ/i,             () => 'CoWork+WorkIQ'],
+    [/Freemium/i,                   () => 'Freemium'],
+  ];
+  for (const [re, fn] of patterns) {
+    const m = name.match(re);
+    if (m) return fn(m);
+  }
+  // Fallback: last meaningful words
+  return name.replace(/^(Windows Holiday[:\-]?\s*|M365\s*[-–]?\s*)/i,'').slice(0,22);
+}
+
+let openDropdown = null; // currently open dropdown element
+
+function closeDropdown() {
+  if (openDropdown) { openDropdown.remove(); openDropdown = null; }
+  document.querySelectorAll('.filter-chevron').forEach(c => c.classList.remove('open'));
+}
+
+function openJobDropdown(chevron, wsKey, anchorEl) {
+  closeDropdown();
+  const wsJobs = events.filter(ev => ev.color === wsKey);
+  if (wsJobs.length === 0) return;
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'job-dropdown';
+
+  // "All [workstream]" option
+  const allItem = document.createElement('div');
+  allItem.className = 'job-dropdown-item';
+  const allChk = document.createElement('input');
+  allChk.type = 'checkbox';
+  const wsName = jobRegistry.find(j=>j.key===wsKey)?.name || wsKey;
+  // checked if no job filter active for this workstream
+  const wsJobIds = wsJobs.map(e=>e.id);
+  const noneSelected = wsJobIds.every(id => !activeJobFilter.has(id));
+  allChk.checked = noneSelected;
+  allItem.appendChild(allChk);
+  allItem.appendChild(Object.assign(document.createElement('span'),{textContent:`All ${wsName}`}));
+  allChk.addEventListener('change', e => {
+    e.stopPropagation();
+    wsJobIds.forEach(id => activeJobFilter.delete(id));
+    allChk.checked = true;
+    dropdown.querySelectorAll('input[type=checkbox]').forEach((cb,i) => { if(i>0) cb.checked=false; });
+    updateChipStates(); render();
+  });
+  allItem.querySelector('span').addEventListener('click', e => {
+    e.stopPropagation();
+    allChk.checked = true;
+    allChk.dispatchEvent(new Event('change'));
+  });
+  dropdown.appendChild(allItem);
+
+  const div = document.createElement('div');
+  div.className = 'job-dropdown-divider';
+  dropdown.appendChild(div);
+
+  // One row per unique job in this workstream — exclude delivered
+  const seen = new Set();
+  wsJobs
+    .filter(ev => ev.status !== 'delivered')
+    .sort((a,b)=>a.start.localeCompare(b.start)).forEach(ev => {
+    const abbr = abbreviateJob(ev.name);
+    if (seen.has(abbr)) return;
+    seen.add(abbr);
+    const evIds = events.filter(e=>e.color===wsKey && abbreviateJob(e.name)===abbr && e.status!=='delivered').map(e=>e.id);
+    if (evIds.length === 0) return;
+    const item = document.createElement('div');
+    item.className = 'job-dropdown-item';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.checked = evIds.some(id => activeJobFilter.has(id));
+    // Attach to checkbox directly — avoids double-toggle when clicking checkbox element
+    chk.addEventListener('change', e => {
+      e.stopPropagation();
+      if (chk.checked) {
+        evIds.forEach(id => activeJobFilter.add(id));
+        allChk.checked = false;
+      } else {
+        evIds.forEach(id => activeJobFilter.delete(id));
+        if (wsJobIds.every(id => !activeJobFilter.has(id))) allChk.checked = true;
+      }
+      updateChipStates(); render();
+    });
+    item.appendChild(chk);
+    item.appendChild(Object.assign(document.createElement('span'),{textContent:abbr}));
+    // Clicking the label text also toggles the checkbox
+    item.querySelector('span').addEventListener('click', e => {
+      e.stopPropagation();
+      chk.checked = !chk.checked;
+      chk.dispatchEvent(new Event('change'));
+    });
+    dropdown.appendChild(item);
+  });
+
+  // Position below chevron
+  const rect = anchorEl.getBoundingClientRect();
+  dropdown.style.left = rect.left + 'px';
+  dropdown.style.top  = (rect.bottom + 4) + 'px';
+  document.body.appendChild(dropdown);
+  openDropdown = dropdown;
+  chevron.classList.add('open');
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', closeDropdown, {once:true});
+  }, 0);
+}
+
+function updateChipStates() {
+  document.querySelectorAll('.filter-item').forEach(item => {
+    const wsKey = item.dataset.color;
+    const wsJobIds = events.filter(e=>e.color===wsKey).map(e=>e.id);
+    const hasActive = wsJobIds.some(id => activeJobFilter.has(id));
+    const isWsFilter = activeFilter === wsKey;
+    item.classList.toggle('active', isWsFilter || hasActive);
+    item.classList.toggle('dimmed', !isWsFilter && !hasActive && (activeFilter !== null || activeJobFilter.size > 0));
+  });
+}
+
 function updateLegendBar() {
   const bar = document.querySelector('.legend-bar');
-  // Remove old swatches (keep label and lock btn)
   bar.querySelectorAll('.filter-item').forEach(el => el.remove());
   const lockDiv = bar.querySelector('div[style]');
   jobRegistry.forEach(job => {
     const item = document.createElement('div');
     item.className = 'legend-item filter-item';
     item.dataset.color = job.key;
-    item.innerHTML = `<div class="legend-dot" style="background:${job.hex}"></div>${job.name}`;
-    item.addEventListener('click', () => {
-      const color = item.dataset.color;
+    item.style.position = 'relative';
+
+    const dot = document.createElement('div');
+    dot.className = 'legend-dot';
+    dot.style.background = job.hex;
+    item.appendChild(dot);
+
+    const label = document.createElement('span');
+    label.textContent = job.name;
+    item.appendChild(label);
+
+    // Subtle chevron
+    const chevron = document.createElement('span');
+    chevron.className = 'filter-chevron';
+    chevron.textContent = '▾';
+    chevron.title = `Filter ${job.name} jobs`;
+    item.appendChild(chevron);
+
+    // Chip click = toggle full workstream (existing behavior)
+    label.addEventListener('click', e => {
+      e.stopPropagation();
+      closeDropdown();
+      activeJobFilter.clear();
+      const color = job.key;
       if (activeFilter === color) {
         activeFilter = null;
         document.querySelectorAll('.filter-item').forEach(i => i.classList.remove('active','dimmed'));
@@ -3842,6 +4038,20 @@ function updateLegendBar() {
       }
       render();
     });
+
+    // Dot click same as label
+    dot.addEventListener('click', e => { e.stopPropagation(); label.click(); });
+
+    // Chevron click = open job dropdown
+    chevron.addEventListener('click', e => {
+      e.stopPropagation();
+      activeFilter = null; // clear workstream filter when using job filter
+      openJobDropdown(chevron, job.key, item);
+    });
+
+    // Item click (background) = label behavior
+    item.addEventListener('click', () => label.click());
+
     bar.insertBefore(item, lockDiv);
   });
 }
@@ -4066,25 +4276,9 @@ document.getElementById('today-btn').addEventListener('click', () => {
 // ── Per-month notes ───────────────────────────────────────────
 const NOTES_PREFIX = 'prodcal2_notes_month_';
 
-// ── Filter by job ─────────────────────────────────────────────
+// ── Filter by job — handled by updateLegendBar() above ────────
 let activeFilter = null;
-
-document.querySelectorAll('.filter-item').forEach(item => {
-  item.addEventListener('click', () => {
-    const color = item.dataset.color;
-    if (activeFilter === color) {
-      activeFilter = null;
-      document.querySelectorAll('.filter-item').forEach(i => i.classList.remove('active','dimmed'));
-    } else {
-      activeFilter = color;
-      document.querySelectorAll('.filter-item').forEach(i => {
-        i.classList.toggle('active', i.dataset.color === color);
-        i.classList.toggle('dimmed', i.dataset.color !== color);
-      });
-    }
-    render();
-  });
-});
+let activeJobFilter = new Set();
 
 // ── Lock / unlock editing ─────────────────────────────────────
 const EDIT_PASSWORD = atob('dGFncG9zdDIwMjY='); // tagpost2026
@@ -4644,12 +4838,15 @@ function loadMC(k) {
 }
 function saveMC(k, v) {
   const wsKey = k.split('_')[0];
-  const ws = jobRegistry.find(j => j.key === wsKey);
-  if (ws) {
-    if (!ws.missionControls) ws.missionControls = {};
-    ws.missionControls[k] = v;
-    saveJobs(jobRegistry);
+  let ws = jobRegistry.find(j => j.key === wsKey);
+  if (!ws) {
+    // New workstream not yet in jobRegistry — add it
+    ws = { key: wsKey, name: wsKey, hex: '#888888', missionControls: {} };
+    jobRegistry.push(ws);
   }
+  if (!ws.missionControls) ws.missionControls = {};
+  ws.missionControls[k] = v;
+  saveJobs(jobRegistry);
 }
 
 function getFiscalQuarter(dateStr) {
