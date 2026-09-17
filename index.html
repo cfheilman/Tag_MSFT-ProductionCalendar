@@ -204,7 +204,74 @@
     background: rgba(46,109,164,0.14); border-color: rgba(46,109,164,0.35);
     border-left-width: 3px; color: #90B8D8;
   }
-  .filter-item.dimmed { opacity: 0.22; }
+  /* Ghost lane */
+  .ghost-tab {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    height: 16px; cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .ghost-tab-cell {
+    border-right: 1px solid var(--border);
+    background: #F5F2FF;
+  }
+  .ghost-tab-cell:last-child { border-right: none; }
+  .ghost-tab-indicator {
+    position: absolute; left: 6px; top: 1px;
+    font-size: 9px; font-weight: 600; color: #9B72CF;
+    pointer-events: none; white-space: nowrap;
+  }
+  .ghost-tab-wrapper {
+    position: relative;
+  }
+  body.dark-mode .ghost-tab-cell { background: #1A1520; border-color: #2A2438; }
+  body.dark-mode .ghost-tab-indicator { color: #B090E0; }
+
+  .ghost-lane {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    background: #F5F2FF; border-bottom: 1px solid #DDD5F5;
+    overflow: hidden; position: relative;
+  }
+  .ghost-lane-cell {
+    border-right: 1px solid #E0D8F5; min-height: 0;
+    background: transparent;
+  }
+  .ghost-lane-cell:last-child { border-right: none; }
+  body.dark-mode .ghost-lane { background: #1A1520; border-color: #2A2438; }
+  body.dark-mode .ghost-lane-cell { border-color: #2A2438; }
+
+  .ghost-lane-header {
+    position: absolute; top: 5px; left: 8px; right: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    pointer-events: none; z-index: 5;
+  }
+  .ghost-lane-label {
+    font-size: 9px; font-weight: 700; color: #9B72CF;
+    letter-spacing: 0.04em;
+  }
+  .ghost-lane-actions {
+    display: flex; gap: 6px; pointer-events: all;
+  }
+  .ghost-collapse-btn {
+    font-size: 8px; color: #9B72CF; background: #EDE8FF;
+    border: 1px solid #C8B8F0; border-radius: 4px;
+    padding: 1px 6px; cursor: pointer; font-weight: 600;
+  }
+  .ghost-collapse-btn:hover { background: #DDD5F5; }
+
+  /* Ghost bars — same as event-bar but 30% opacity */
+  .ghost-bar {
+    position: absolute; border-radius: 4px;
+    height: 21px; opacity: 0.32;
+    display: flex; align-items: center;
+    padding: 0 6px; font-size: 11px; font-weight: 500;
+    color: #fff; white-space: nowrap; overflow: hidden;
+    pointer-events: all; cursor: pointer;
+  }
+  .ghost-bar:hover { opacity: 0.55; }
+  .ghost-bars-layer {
+    position: absolute; left: 0; right: 0;
+    top: 24px; pointer-events: none;
+  }
 
   /* Job-level dropdown */
   .filter-chevron {
@@ -1415,6 +1482,7 @@
         <option value="production">In Production</option>
         <option value="qc">QC</option>
         <option value="delivered">Delivered</option>
+        <option value="ghost">👻 Ghost</option>
       </select>
     </div>
     <div class="modal-field">
@@ -2448,6 +2516,123 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     });
 
     weeksEl.appendChild(weekEl);
+
+    // ── Ghost Lane ────────────────────────────────────────────
+    // Get ghost events overlapping this week
+    const ghostEvents = allRangeEvents.filter(ev =>
+      ev.status === 'ghost' &&
+      ev.start <= weekEnd && ev.end >= weekStart
+    );
+
+    const weekKey = weekStart; // unique key per week
+    const isExpanded = ghostExpandedWeeks.has(weekKey);
+
+    // Wrapper for tab + lane
+    const ghostWrapper = document.createElement('div');
+    ghostWrapper.className = 'ghost-tab-wrapper';
+
+    // Tab strip — always visible
+    const ghostTab = document.createElement('div');
+    ghostTab.className = 'ghost-tab';
+    for (let i = 0; i < 7; i++) {
+      const c = document.createElement('div');
+      c.className = 'ghost-tab-cell';
+      ghostTab.appendChild(c);
+    }
+    ghostTab.style.cursor = 'pointer';
+    ghostTab.addEventListener('click', () => {
+      if (ghostExpandedWeeks.has(weekKey)) {
+        ghostExpandedWeeks.delete(weekKey);
+      } else {
+        ghostExpandedWeeks.add(weekKey);
+      }
+      render();
+    });
+
+    // Indicator label on tab
+    const ghostIndicator = document.createElement('div');
+    ghostIndicator.className = 'ghost-tab-indicator';
+    ghostIndicator.textContent = ghostEvents.length > 0
+      ? `👻 ${ghostEvents.length}  ${isExpanded ? '▲' : '▼'}`
+      : `${isExpanded ? '▲' : '▼'}`;
+    ghostWrapper.appendChild(ghostTab);
+    ghostWrapper.appendChild(ghostIndicator);
+
+    // Expanded ghost lane
+    if (isExpanded && ghostEvents.length > 0) {
+      const lane = document.createElement('div');
+      lane.className = 'ghost-lane';
+      const BAR_H_G = 21, BAR_GAP_G = 4;
+      const laneH = 28 + ghostEvents.length * (BAR_H_G + BAR_GAP_G) + 8;
+      lane.style.height = laneH + 'px';
+      lane.style.position = 'relative';
+
+      for (let i = 0; i < 7; i++) {
+        const c = document.createElement('div');
+        c.className = 'ghost-lane-cell';
+        lane.appendChild(c);
+      }
+
+      // Lane header
+      const laneHeader = document.createElement('div');
+      laneHeader.className = 'ghost-lane-header';
+      const laneLabel = document.createElement('span');
+      laneLabel.className = 'ghost-lane-label';
+      laneLabel.textContent = '👻  Ghost Lane — dates unconfirmed';
+      const laneActions = document.createElement('div');
+      laneActions.className = 'ghost-lane-actions';
+      const collapseBtn = document.createElement('button');
+      collapseBtn.className = 'ghost-collapse-btn';
+      collapseBtn.textContent = '▲ Collapse';
+      collapseBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        ghostExpandedWeeks.delete(weekKey);
+        render();
+      });
+      laneActions.appendChild(collapseBtn);
+      laneHeader.appendChild(laneLabel);
+      laneHeader.appendChild(laneActions);
+      lane.appendChild(laneHeader);
+
+      // Ghost bars layer
+      const ghostBarsLayer = document.createElement('div');
+      ghostBarsLayer.className = 'ghost-bars-layer';
+      ghostBarsLayer.style.position = 'absolute';
+      ghostBarsLayer.style.top = '26px';
+      ghostBarsLayer.style.left = '0';
+      ghostBarsLayer.style.right = '0';
+      ghostBarsLayer.style.pointerEvents = 'none';
+
+      const colWPct = 100 / 7;
+      ghostEvents.forEach((ev, gi) => {
+        const job = getJobByKey(ev.color);
+        const hexColor = job ? job.hex : '#888';
+
+        const segStart = ev.start < weekStart ? weekStart : ev.start;
+        const segEnd   = ev.end   > weekEnd   ? weekEnd   : ev.end;
+        const startCol = weekDays.findIndex(d => d.date === segStart);
+        const endCol   = weekDays.findIndex(d => d.date === segEnd);
+        if (startCol === -1 || endCol === -1) return;
+
+        const bar = document.createElement('div');
+        bar.className = 'ghost-bar';
+        bar.style.left    = `calc(${startCol * colWPct}% + 3px)`;
+        bar.style.width   = `calc(${(endCol - startCol + 1) * colWPct}% - 6px)`;
+        bar.style.top     = `${gi * (BAR_H_G + BAR_GAP_G)}px`;
+        bar.style.background = hexColor;
+        bar.style.pointerEvents = 'all';
+        bar.textContent = `👻 ${ev.name}`;
+        bar.title = `Ghost: ${ev.name} (${ev.start} – ${ev.end})`;
+        // Click to edit
+        bar.addEventListener('click', () => openEditModal(ev.id));
+        ghostBarsLayer.appendChild(bar);
+      });
+
+      lane.appendChild(ghostBarsLayer);
+      ghostWrapper.appendChild(lane);
+    }
+
+    weeksEl.appendChild(ghostWrapper);
   });
 }
 
@@ -2503,15 +2688,15 @@ function render() {
     })
     .sort((a,b) => daysBetween(b.start,b.end) - daysBetween(a.start,a.end));
 
-  // Filtered events for rendering (respects activeFilter and activeJobFilter)
   const visibleEvents = allRangeEvents.filter(ev => {
+    if (ev.status === 'delivered') return false;
+    if (ev.status === 'ghost') return false;
     if (activeJobFilter.size > 0) return activeJobFilter.has(ev.id);
     if (activeFilter) return ev.color === activeFilter;
     return true;
   });
 
-  // Assign slots — when filter active use only visible events so they pack into top rows
-  const eventsForSlots = (activeFilter || activeJobFilter.size > 0) ? visibleEvents : allRangeEvents;
+  const eventsForSlots = (activeFilter || activeJobFilter.size > 0) ? visibleEvents : allRangeEvents.filter(ev => ev.status !== 'delivered' && ev.status !== 'ghost');
 
   globalSlotMap = {}; // eventId -> slot (consistent across all weeks)
   const globalSlotOccupied = []; // slot -> array of [effectiveStart, effectiveEnd]
@@ -2710,6 +2895,7 @@ const STATUS_LABELS = {
   'production': 'In Production',
   'qc': 'QC',
   'delivered': 'Delivered',
+  'ghost': '👻 Ghost',
 };
 
 // ── General Production Notes (not tied to any job or month) ────
@@ -3215,7 +3401,7 @@ function renderStandupBody() {
   }
 
   // Split into active (non-delivered) and delivered
-  const activeJobs    = jobsToShow.filter(ev => ev.status !== 'delivered');
+  const activeJobs    = jobsToShow.filter(ev => ev.status !== 'delivered' && ev.status !== 'ghost');
   const deliveredJobs = jobsToShow.filter(ev => ev.status === 'delivered');
 
   // Render active jobs first
@@ -3378,7 +3564,7 @@ function renderStandupBody() {
         statusBadge.style.cssText += 'background:transparent;border:1px dashed var(--border-strong);color:var(--text-faint);font-style:italic;';
       }
       if (!isLocked) {
-        const cycle = ['production', 'qc', 'delivered', ''];
+        const cycle = ['production', 'qc', 'delivered', 'ghost', ''];
         statusBadge.addEventListener('click', e => {
           e.stopPropagation();
           const idx = cycle.indexOf(ev.status || '');
@@ -4301,6 +4487,7 @@ const NOTES_PREFIX = 'prodcal2_notes_month_';
 // ── Filter by job — handled by updateLegendBar() above ────────
 let activeFilter = null;
 let activeJobFilter = new Set();
+let ghostExpandedWeeks = new Set(); // tracks which week starts have ghost lane open
 
 // ── Lock / unlock editing ─────────────────────────────────────
 const EDIT_PASSWORD = atob('dGFncG9zdDIwMjY='); // tagpost2026
@@ -4888,7 +5075,7 @@ function renderPM() {
   body.innerHTML='';
   const workstreams=jobRegistry.filter(j=>j.key!=='charcoal');
   const cfq=currentFQ();
-  const statusCycle=['production','qc','delivered',''];
+  const statusCycle=['production','qc','delivered','ghost',''];
 
   workstreams.forEach(job=>{
     const allWsJobs=events.filter(ev=>ev.color===job.key);
@@ -5064,7 +5251,7 @@ function renderPM() {
       }
 
       // Sort: active first, delivered at bottom
-      const statusOrd={'production':0,'qc':1,'':2,'delivered':3};
+      const statusOrd={'production':0,'qc':1,'':2,'delivered':3,'ghost':4};
       qJobs.sort((a,b)=>(statusOrd[a.status]??2)-(statusOrd[b.status]??2)||a.start.localeCompare(b.start));
       const activeQ=qJobs.filter(ev=>ev.status!=='delivered');
       const delivQ=qJobs.filter(ev=>ev.status==='delivered');
