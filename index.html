@@ -2518,8 +2518,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     weeksEl.appendChild(weekEl);
 
     // ── Ghost Lane ────────────────────────────────────────────
-    // Get ghost events overlapping this week
-    const ghostEvents = allRangeEvents.filter(ev =>
+    const ghostEvents = events.filter(ev =>
       ev.status === 'ghost' &&
       ev.start <= weekEnd && ev.end >= weekStart
     );
