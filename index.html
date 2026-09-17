@@ -2623,7 +2623,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
         bar.textContent = `👻 ${ev.name}`;
         bar.title = `Ghost: ${ev.name} (${ev.start} – ${ev.end})`;
         // Click to edit
-        bar.addEventListener('click', () => openEditModal(ev.id));
+        bar.addEventListener('click', () => { if (!isLocked) openEdit(ev.id); });
         ghostBarsLayer.appendChild(bar);
       });
 
@@ -3702,7 +3702,7 @@ function renderStandupBody() {
       statusDate.style.cssText = 'font-size:10px;color:var(--accent);font-family:"JetBrains Mono",monospace;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:1px;';
       statusDate.textContent = latest.date;
       const statusTxt = document.createElement('span');
-      statusTxt.style.cssText = 'font-size:12px;color:var(--text);line-height:1.5;';
+      statusTxt.style.cssText = 'font-size:12px;color:var(--text);line-height:1.5;white-space:pre-wrap;';
       statusTxt.textContent = latest.text;
       statusEntry.appendChild(statusDate);
       statusEntry.appendChild(statusTxt);
@@ -5369,7 +5369,7 @@ function renderPMJob(ev,hex,group,statusCycle){
     entries.forEach((entry,i)=>{
       const row=document.createElement('div');row.className='pm-status-entry';
       const ds=document.createElement('span');ds.className='pm-status-date';ds.textContent=entry.date;
-      const ts=document.createElement('span');ts.className='pm-status-text';ts.textContent=entry.text;
+      const ts=document.createElement('span');ts.className='pm-status-text';ts.style.whiteSpace='pre-wrap';ts.textContent=entry.text;
       const dl=document.createElement('button');dl.className='pm-status-del';dl.textContent='×';
       dl.addEventListener('click',e=>{e.stopPropagation();const u=loadPmData(ev.id);u.splice(i,1);savePmStatus(ev.id,u);saveData();rerenderLog();});
       if(!isLocked) row.appendChild(dl);row.appendChild(ds);row.appendChild(ts);
