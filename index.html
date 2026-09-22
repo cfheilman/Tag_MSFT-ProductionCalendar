@@ -4667,8 +4667,12 @@ function renderDashboard() {
   // Still use period for stat calculations but show all jobs in workstream panels
   const inRange = events.filter(ev => ev.color !== 'charcoal');
   const inPeriod = events.filter(ev => ev.color !== 'charcoal' && ev.start <= end && ev.end >= start);
-  // Delivered jobs only count in the period their end date falls within
-  const deliveredInPeriod = inPeriod.filter(ev => getJobStatus(ev) === 'delivered' && ev.end >= start && ev.end <= end);
+  // Delivered jobs only count in the period their delivery date (liveDate or end) falls within
+  const deliveredInPeriod = inPeriod.filter(ev => {
+    if (getJobStatus(ev) !== 'delivered') return false;
+    const deliveryDate = (ev.liveDate && ev.liveDate > ev.end) ? ev.liveDate : ev.end;
+    return deliveryDate >= start && deliveryDate <= end;
+  });
   const workstreams = jobRegistry.filter(j => j.key !== 'charcoal');
 
   const totalJobs      = inPeriod.length;
