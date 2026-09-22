@@ -4656,7 +4656,6 @@ function getJobStatus(ev) {
   if (ev.status === 'qc')        return 'qc';
   if (ev.status === 'production') return 'production';
   if (ev.start > today)          return 'queued';
-  if (ev.end < today)            return 'delivered'; // past end, treat as done
   return 'production';
 }
 
@@ -4668,14 +4667,15 @@ function renderDashboard() {
   // Still use period for stat calculations but show all jobs in workstream panels
   const inRange = events.filter(ev => ev.color !== 'charcoal');
   const inPeriod = events.filter(ev => ev.color !== 'charcoal' && ev.start <= end && ev.end >= start);
+  // Delivered jobs only count in the period their end date falls within
+  const deliveredInPeriod = inPeriod.filter(ev => getJobStatus(ev) === 'delivered' && ev.end >= start && ev.end <= end);
   const workstreams = jobRegistry.filter(j => j.key !== 'charcoal');
 
   const totalJobs      = inPeriod.length;
-  const totalDelivered = inPeriod.filter(ev => getJobStatus(ev) === 'delivered').length;
+  const totalDelivered = deliveredInPeriod.length;
   const inProgress     = inPeriod.filter(ev => ['production','qc'].includes(getJobStatus(ev))).length;
   const inQueue        = inPeriod.filter(ev => getJobStatus(ev) === 'queued').length;
-  const totalDeliveries= inRange
-    .filter(ev => getJobStatus(ev) === 'delivered')
+  const totalDeliveries= deliveredInPeriod
     .reduce((s,ev) => s + (parseInt(deliveryLog[ev.id])||0), 0);
 
   // ── Stat cards ──────────────────────────────────────────────
