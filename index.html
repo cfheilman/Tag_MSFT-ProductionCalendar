@@ -2708,13 +2708,18 @@ function render() {
     return ev.liveDate;
   }
 
-  // Sort: primary by start date so earlier jobs claim lower slots first
-  // Secondary by workstream (Windows before M365 on same day), OOO always last
-  const wsOrder = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
+  const GLOBAL_DEPRIORITIZED = ['EXCEL MSA','Anthem + Excel - UK','CoWork + WorkIQ - UK',
+    'UK - EXCEL','UK - ANTHEM','UK - COWORK','UK - WORKIQ','Batch 01 UK','Batch 02 UK'];
+  const isGlobalDep = ev => GLOBAL_DEPRIORITIZED.some(n => ev.name.includes(n));
+
+  // Sort: deprioritized last, then Windows before M365, then by start date
   [...eventsForSlots].sort((a,b) => {
     const aIsOOO = a.color === 'charcoal';
     const bIsOOO = b.color === 'charcoal';
     if (aIsOOO !== bIsOOO) return aIsOOO ? 1 : -1;
+    const ad = isGlobalDep(a) ? 1 : 0;
+    const bd = isGlobalDep(b) ? 1 : 0;
+    if (ad !== bd) return ad - bd;
     if (a.start !== b.start) return a.start.localeCompare(b.start);
     const aOrd = wsOrder[a.color] ?? 50;
     const bOrd = wsOrder[b.color] ?? 50;
