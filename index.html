@@ -2032,35 +2032,20 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     // Sort: jobs active at/before week start first (by start date), then workstream order
     const wsOrd = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
     // These jobs always get the highest slots (pushed to overflow/last row)
-    const DEPRIORITIZED = ['EXCEL MSA','Anthem + Excel - UK','CoWork + WorkIQ - UK',
-      'UK - EXCEL','UK - ANTHEM','UK - COWORK','UK - WORKIQ','Batch 01 UK','Batch 02 UK'];
+    const DEPRIORITIZED = ['EXCEL MSA', 'Anthem + Excel - UK', 'CoWork + WorkIQ - UK'];
     const isDeprioritized = ev => DEPRIORITIZED.some(n => ev.name.includes(n));
-    // M365 jobs in their last 2 days should not block new Windows jobs starting this week
-    const isWindingDown = ev => {
-      if (ev.color !== 'blue2') return false;
-      const daysLeft = Math.round((new Date(ev.end) - new Date(weekStart)) / 86400000);
-      return daysLeft <= 2;
-    };
 
     const weekEventsSorted = [...weekEvents].sort((a, b) => {
-      // Creator Videos always float to top
-      const ac = (a.name.includes('Creator Video') || a.name.includes('MSFT Creator')) ? 0 : 1;
-      const bc = (b.name.includes('Creator Video') || b.name.includes('MSFT Creator')) ? 0 : 1;
-      if (ac !== bc) return ac - bc;
-      // Deprioritized bridge jobs always go last
-      const ad = (isDeprioritized(a) || isWindingDown(a)) ? 1 : 0;
-      const bd = (isDeprioritized(b) || isWindingDown(b)) ? 1 : 0;
+      const ad = isDeprioritized(a) ? 1 : 0;
+      const bd = isDeprioritized(b) ? 1 : 0;
       if (ad !== bd) return ad - bd;
-      // Pre-week jobs get priority; jobs starting on week start also count as pre-week
-      const aPreWeek = (a.start <= weekStart) ? 0 : 1;
-      const bPreWeek = (b.start <= weekStart) ? 0 : 1;
+      const aPreWeek = a.start < weekStart ? 0 : 1;
+      const bPreWeek = b.start < weekStart ? 0 : 1;
       if (aPreWeek !== bPreWeek) return aPreWeek - bPreWeek;
-      // Same pre-week group: Windows before M365 before others
+      if (a.start !== b.start) return a.start.localeCompare(b.start);
       const aOrd = wsOrd[a.color] ?? 50;
       const bOrd = wsOrd[b.color] ?? 50;
       if (aOrd !== bOrd) return aOrd - bOrd;
-      // Same workstream: earlier start first, then shorter duration
-      if (a.start !== b.start) return a.start.localeCompare(b.start);
       return (new Date(a.end) - new Date(a.start)) - (new Date(b.end) - new Date(b.start));
     });
 
@@ -2712,23 +2697,13 @@ function render() {
     return ev.liveDate;
   }
 
-  const GLOBAL_DEPRIORITIZED = ['EXCEL MSA','Anthem + Excel - UK','CoWork + WorkIQ - UK',
-    'UK - EXCEL','UK - ANTHEM','UK - COWORK','UK - WORKIQ','Batch 01 UK','Batch 02 UK'];
-  const isGlobalDep = ev => GLOBAL_DEPRIORITIZED.some(n => ev.name.includes(n));
-  const isCreatorVideo = ev => ev.name.includes('Creator Video') || ev.name.includes('MSFT Creator');
-
-  // Sort: Creator Videos first, deprioritized last, then Windows before M365, then by start date
+  // Sort: primary by start date so earlier jobs claim lower slots first
+  // Secondary by workstream (Windows before M365 on same day), OOO always last
+  const wsOrder = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
   [...eventsForSlots].sort((a,b) => {
     const aIsOOO = a.color === 'charcoal';
     const bIsOOO = b.color === 'charcoal';
     if (aIsOOO !== bIsOOO) return aIsOOO ? 1 : -1;
-    // Creator Videos always float to top
-    const ac = isCreatorVideo(a) ? 0 : 1;
-    const bc = isCreatorVideo(b) ? 0 : 1;
-    if (ac !== bc) return ac - bc;
-    const ad = isGlobalDep(a) ? 1 : 0;
-    const bd = isGlobalDep(b) ? 1 : 0;
-    if (ad !== bd) return ad - bd;
     if (a.start !== b.start) return a.start.localeCompare(b.start);
     const aOrd = wsOrder[a.color] ?? 50;
     const bOrd = wsOrder[b.color] ?? 50;
