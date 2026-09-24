@@ -2043,6 +2043,10 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     };
 
     const weekEventsSorted = [...weekEvents].sort((a, b) => {
+      // Creator Videos always float to top
+      const ac = (a.name.includes('Creator Video') || a.name.includes('MSFT Creator')) ? 0 : 1;
+      const bc = (b.name.includes('Creator Video') || b.name.includes('MSFT Creator')) ? 0 : 1;
+      if (ac !== bc) return ac - bc;
       // Deprioritized bridge jobs always go last
       const ad = (isDeprioritized(a) || isWindingDown(a)) ? 1 : 0;
       const bd = (isDeprioritized(b) || isWindingDown(b)) ? 1 : 0;
@@ -2711,12 +2715,17 @@ function render() {
   const GLOBAL_DEPRIORITIZED = ['EXCEL MSA','Anthem + Excel - UK','CoWork + WorkIQ - UK',
     'UK - EXCEL','UK - ANTHEM','UK - COWORK','UK - WORKIQ','Batch 01 UK','Batch 02 UK'];
   const isGlobalDep = ev => GLOBAL_DEPRIORITIZED.some(n => ev.name.includes(n));
+  const isCreatorVideo = ev => ev.name.includes('Creator Video') || ev.name.includes('MSFT Creator');
 
-  // Sort: deprioritized last, then Windows before M365, then by start date
+  // Sort: Creator Videos first, deprioritized last, then Windows before M365, then by start date
   [...eventsForSlots].sort((a,b) => {
     const aIsOOO = a.color === 'charcoal';
     const bIsOOO = b.color === 'charcoal';
     if (aIsOOO !== bIsOOO) return aIsOOO ? 1 : -1;
+    // Creator Videos always float to top
+    const ac = isCreatorVideo(a) ? 0 : 1;
+    const bc = isCreatorVideo(b) ? 0 : 1;
+    if (ac !== bc) return ac - bc;
     const ad = isGlobalDep(a) ? 1 : 0;
     const bd = isGlobalDep(b) ? 1 : 0;
     if (ad !== bd) return ad - bd;
