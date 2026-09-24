@@ -2032,7 +2032,7 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     // Sort: jobs active at/before week start first (by start date), then workstream order
     const wsOrd = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
     // These jobs always get the highest slots (pushed to overflow/last row)
-    const DEPRIORITIZED = ['EXCEL MSA', 'Anthem + Excel - UK', 'CoWork + WorkIQ - UK'];
+    const DEPRIORITIZED = ['EXCEL MSA', 'Anthem + Excel - UK', 'CoWork + WorkIQ - UK', 'UK - EXCEL', 'UK - ANTHEM', 'UK - COWORK', 'UK - WORKIQ', 'Batch 01 UK', 'Batch 02 UK'];
     const isDeprioritized = ev => DEPRIORITIZED.some(n => ev.name.includes(n));
 
     const weekEventsSorted = [...weekEvents].sort((a, b) => {
@@ -2040,16 +2040,17 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       const ad = isDeprioritized(a) ? 1 : 0;
       const bd = isDeprioritized(b) ? 1 : 0;
       if (ad !== bd) return ad - bd;
-      // Pre-week jobs get priority (first come first served)
-      const aPreWeek = a.start < weekStart ? 0 : 1;
-      const bPreWeek = b.start < weekStart ? 0 : 1;
+      // Pre-week jobs get priority; Windows jobs starting on week start also count as pre-week
+      const aPreWeek = (a.start <= weekStart) ? 0 : 1;
+      const bPreWeek = (b.start <= weekStart) ? 0 : 1;
       if (aPreWeek !== bPreWeek) return aPreWeek - bPreWeek;
-      // Same group: sort by start date
-      if (a.start !== b.start) return a.start.localeCompare(b.start);
-      // Tiebreaker only: workstream then shorter duration
+      // Same pre-week group: Windows before M365 before others
       const aOrd = wsOrd[a.color] ?? 50;
       const bOrd = wsOrd[b.color] ?? 50;
       if (aOrd !== bOrd) return aOrd - bOrd;
+      // Same workstream: earlier start first
+      if (a.start !== b.start) return a.start.localeCompare(b.start);
+      // Tiebreaker: shorter duration first
       return (new Date(a.end) - new Date(a.start)) - (new Date(b.end) - new Date(b.start));
     });
 
