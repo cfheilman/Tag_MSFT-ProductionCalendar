@@ -2032,15 +2032,22 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
     // Sort: jobs active at/before week start first (by start date), then workstream order
     const wsOrd = { 'green': 0, 'blue2': 1, 'purple': 2, 'charcoal': 99 };
     // These jobs always get the highest slots (pushed to overflow/last row)
-    const DEPRIORITIZED = ['EXCEL MSA', 'Anthem + Excel - UK', 'CoWork + WorkIQ - UK', 'UK - EXCEL', 'UK - ANTHEM', 'UK - COWORK', 'UK - WORKIQ', 'Batch 01 UK', 'Batch 02 UK'];
+    const DEPRIORITIZED = ['EXCEL MSA','Anthem + Excel - UK','CoWork + WorkIQ - UK',
+      'UK - EXCEL','UK - ANTHEM','UK - COWORK','UK - WORKIQ','Batch 01 UK','Batch 02 UK'];
     const isDeprioritized = ev => DEPRIORITIZED.some(n => ev.name.includes(n));
+    // M365 jobs in their last 2 days should not block new Windows jobs starting this week
+    const isWindingDown = ev => {
+      if (ev.color !== 'blue2') return false;
+      const daysLeft = Math.round((new Date(ev.end) - new Date(weekStart)) / 86400000);
+      return daysLeft <= 2;
+    };
 
     const weekEventsSorted = [...weekEvents].sort((a, b) => {
       // Deprioritized bridge jobs always go last
-      const ad = isDeprioritized(a) ? 1 : 0;
-      const bd = isDeprioritized(b) ? 1 : 0;
+      const ad = (isDeprioritized(a) || isWindingDown(a)) ? 1 : 0;
+      const bd = (isDeprioritized(b) || isWindingDown(b)) ? 1 : 0;
       if (ad !== bd) return ad - bd;
-      // Pre-week jobs get priority; Windows jobs starting on week start also count as pre-week
+      // Pre-week jobs get priority; jobs starting on week start also count as pre-week
       const aPreWeek = (a.start <= weekStart) ? 0 : 1;
       const bPreWeek = (b.start <= weekStart) ? 0 : 1;
       if (aPreWeek !== bPreWeek) return aPreWeek - bPreWeek;
@@ -2048,9 +2055,8 @@ function renderWeeks(weeks, weeksEl, visibleEvents, globalSlotMap) {
       const aOrd = wsOrd[a.color] ?? 50;
       const bOrd = wsOrd[b.color] ?? 50;
       if (aOrd !== bOrd) return aOrd - bOrd;
-      // Same workstream: earlier start first
+      // Same workstream: earlier start first, then shorter duration
       if (a.start !== b.start) return a.start.localeCompare(b.start);
-      // Tiebreaker: shorter duration first
       return (new Date(a.end) - new Date(a.start)) - (new Date(b.end) - new Date(b.start));
     });
 
