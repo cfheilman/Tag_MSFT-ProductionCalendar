@@ -281,6 +281,18 @@
   }
   .filter-chevron:hover { opacity: 1; }
   .filter-chevron.open { opacity: 1; }
+  .job-step-arrow {
+    font-size: 10px; opacity: 0.4; cursor: pointer; padding: 0 2px;
+    border-radius: 3px; line-height: 1; vertical-align: middle;
+    transition: opacity 0.15s; user-select: none;
+  }
+  .job-step-arrow:hover { opacity: 1; background: rgba(255,255,255,0.08); }
+  .job-step-arrow.has-active { opacity: 0.9; color: #8AB4FF; }
+  .job-step-label {
+    font-size: 9px; opacity: 0.7; max-width: 90px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; color: #8AB4FF;
+    margin: 0 1px; vertical-align: middle;
+  }
   .job-dropdown {
     position: fixed; z-index: 300;
     background: #16162A; border: 1px solid #2A2A44; border-radius: 10px;
@@ -4128,22 +4140,22 @@ function openJobDropdown(chevron, wsKey, anchorEl) {
   div.className = 'job-dropdown-divider';
   dropdown.appendChild(div);
 
-  // One row per unique job in this workstream — exclude delivered
-  const seen = new Set();
+  // One row per unique job name in this workstream — each listed individually
+  const seenNames = new Set();
   wsJobs
     .filter(ev => ev.status !== 'delivered')
-    .sort((a,b)=>a.start.localeCompare(b.start)).forEach(ev => {
-    const abbr = abbreviateJob(ev.name);
-    if (seen.has(abbr)) return;
-    seen.add(abbr);
-    const evIds = events.filter(e=>e.color===wsKey && abbreviateJob(e.name)===abbr && e.status!=='delivered').map(e=>e.id);
+    .sort((a,b)=>a.name.localeCompare(b.name)).forEach(ev => {
+    const label = ev.name;
+    if (seenNames.has(label)) return;
+    seenNames.add(label);
+    // All events with this exact name in this workstream
+    const evIds = events.filter(e=>e.color===wsKey && e.name===label && e.status!=='delivered').map(e=>e.id);
     if (evIds.length === 0) return;
     const item = document.createElement('div');
     item.className = 'job-dropdown-item';
     const chk = document.createElement('input');
     chk.type = 'checkbox';
     chk.checked = evIds.some(id => activeJobFilter.has(id));
-    // Attach to checkbox directly — avoids double-toggle when clicking checkbox element
     chk.addEventListener('change', e => {
       e.stopPropagation();
       if (chk.checked) {
@@ -4156,8 +4168,7 @@ function openJobDropdown(chevron, wsKey, anchorEl) {
       updateChipStates(); render();
     });
     item.appendChild(chk);
-    item.appendChild(Object.assign(document.createElement('span'),{textContent:abbr}));
-    // Clicking the label text also toggles the checkbox
+    item.appendChild(Object.assign(document.createElement('span'),{textContent:label}));
     item.querySelector('span').addEventListener('click', e => {
       e.stopPropagation();
       chk.checked = !chk.checked;
