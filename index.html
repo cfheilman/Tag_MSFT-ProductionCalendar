@@ -3383,7 +3383,11 @@ function renderStandupBody() {
     jobsToShow = events.filter(ev => ev.color === standupFilter);
   }
   if (standupFilter !== 'delivering') {
-    jobsToShow = [...jobsToShow].sort((a, b) => a.start.localeCompare(b.start));
+    // Sort by color first (keeps workstreams contiguous for header grouping), then by start date
+    jobsToShow = [...jobsToShow].sort((a, b) => {
+      if (a.color !== b.color) return a.color.localeCompare(b.color);
+      return a.start.localeCompare(b.start);
+    });
   }
 
   if (jobsToShow.length === 0 && standupFilter === 'delivering') {
