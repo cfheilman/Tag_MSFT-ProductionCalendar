@@ -3488,8 +3488,9 @@ function renderStandupBody() {
     const wsHex = wsJob.hex.startsWith('rgba') ? '#1565C0' : wsJob.hex;
 
     if (wsKey !== 'charcoal') {
+      // Group purely by workstream color — never split by fiscal quarter mid-list
       const fqO = getFiscalQuarter ? getFiscalQuarter(getEffectiveDate(ev)) : null;
-      const wsHeaderKey = wsKey + (fqO ? fqO.label : '');
+      const wsHeaderKey = wsKey; // key by color only so all jobs of same WS stay together
 
       if (!shownWsHeaders.has(wsHeaderKey)) {
         shownWsHeaders.add(wsHeaderKey);
